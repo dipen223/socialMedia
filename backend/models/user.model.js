@@ -27,8 +27,12 @@ const userSchema = new Schema({
         type:Date,
         default:Date.now,
     },
-    updatedAt:{
-        type:Date,
-        default:Date.now,
+    token:{
+        type:String,
+        default:''
     }
-})
+});
+
+const User = mongoose.Model("User",userSchema);
+
+export default User;
