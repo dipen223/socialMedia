@@ -1,7 +1,4 @@
-import mongoose,{Schema} from "mognose";
-import { model } from "mongoose";
-
-
+import mongoose,{Schema} from "mongoose";
 
 const profileSchema = new Schema({
     userId:{
@@ -22,4 +19,6 @@ const profileSchema = new Schema({
     }
 });
 
-const Profile = new mongoose.Model("Profile",profileSchema);
+const Profile = new mongoose.model("Profile",profileSchema);
+
+export default Profile;
