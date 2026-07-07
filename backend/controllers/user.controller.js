@@ -2,9 +2,7 @@ import User from "../models/user.model.js";
 import Profile from "../models/profile.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
-
-dotenv.config();
+import cloudinary from "../config/cloudinary.js";
 
 const signup = async (req, res) => {
     const { name, username, email, password } = req.body;
@@ -37,7 +35,7 @@ const signup = async (req, res) => {
 
 
         res.status(201).json({
-            message:"Account created successfully",
+            message: "Account created successfully",
             token,
             user: {
                 _id: newUser._id,
@@ -54,39 +52,77 @@ const signup = async (req, res) => {
 };
 
 
-const login = async(req,res) =>{
-    const {email,password} = req.body;
-    if(!email || !password){
-        return res.status(400).json({message:"All fields are required!"});
+const login = async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res.status(400).json({ message: "All fields are required!" });
     }
-    try{
-        const existingUser = await User.findOne({email});
-        if(!existingUser){
-            return res.status(400).json({ message: "Invalid Credentials!" });
+    try {
+        const existingUser = await User.findOne({ email });
+        if (!existingUser) {
+            return res.status(401).json({ message: "Invalid Credentials!" });
         }
 
-        const isMatch = await bcrypt.compare(password,existingUser.password);
-        if(!isMatch){
-             return res.status(400).json({ message: "Invalid Credentials!" });
+        const isMatch = await bcrypt.compare(password, existingUser.password);
+        if (!isMatch) {
+            return res.status(401).json({ message: "Invalid Credentials!" });
         }
 
-         const token = jwt.sign({ id: existingUser._id }, process.env.JWT_SECRET_KEY, { expiresIn: "1h" });
-         res.json({
-            message:"Login Successsfull",
+        const token = jwt.sign({ id: existingUser._id }, process.env.JWT_SECRET_KEY, { expiresIn: "1h" });
+        res.json({
+            message: "Login Successsfull",
             token,
-            user:{
-                _id:existingUser._id,
-                name:existingUser.name,
-                username:existingUser.username,
+            user: {
+                _id: existingUser._id,
+                name: existingUser.name,
+                username: existingUser.username,
                 email: existingUser.email,
 
             }
-         });
-    }catch(err){
-         console.error("Error during login:", err.message);
+        });
+    } catch (err) {
+        console.error("Error during login:", err.message);
         res.status(500).send("Server error!");
     }
+};
+
+const uploadProfile = async (req, res) => {
+
+    const userId = req.user.id;
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: "No file uploaded" });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: "User not found!" });
+
+        const fileStr = req.file.buffer.toString("base64");
+        const fileUri = `data:${req.file.mimetype};base64,${fileStr}`;
+
+        const result = await cloudinary.uploader.upload(fileUri, {
+            folder: "socialhub/profile_pictures",
+        });
+
+        user.profilePicture = result.secure_url;
+        await user.save();
+
+        res.json({
+            message: "Profile updated",
+            profilePicture: user.profilePicture
+        });
+
+   } catch (err) {
+    console.error("UPLOAD ERROR:", err);
+    console.error("MESSAGE:", err?.message);
+
+    return res.status(500).json({
+        message: "Server Error!",
+        error: err?.message || err
+    });
+}
+
 }
 
 
-export default {signup,login};
+export default { signup, login, uploadProfile };
