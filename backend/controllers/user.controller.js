@@ -176,7 +176,7 @@ const updateUserProfile = async (req,res)=>{
 const getUserProfile = async(req,res)=>{
       const userId = req.user.id;
       try{
-        const user = await User.findById({userId});
+        const user = await User.findById(userId);
           if (!user) return res.status(404).json({ message: "User not found!" });
 
           const userProfile = await Profile.findOne({userId:user._id}).populate("userId","name username email profilePicture");
