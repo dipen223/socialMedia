@@ -124,5 +124,54 @@ const uploadProfile = async (req, res) => {
 
 }
 
+const updateUserProfile = async (req,res)=>{
+    const userId = req.user.id;
+    const {name,email,username} = req.body;
+    try{
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: "User not found!" });
 
-export default { signup, login, uploadProfile };
+        if (!name && !email && !username) {
+            return res.status(400).json({ message: "No fields provided to update!" });
+        }
+
+        if (email && email !== user.email) {
+            const existingEmail = await User.findOne({ email });
+            if (existingEmail) {
+                return res.status(400).json({ message: "Email already in use!" });
+            }
+            user.email = email;
+        }
+
+        if (username && username !== user.username) {
+            const existingUsername = await User.findOne({ username });
+            if (existingUsername) {
+                return res.status(400).json({ message: "Username already in use!" });
+            }
+            user.username = username;
+        }
+
+        if (name) {
+            user.name = name;
+        }
+
+        await user.save();
+
+        res.json({
+            message: "User profile updated successfully",
+            user: {
+                _id: user._id,
+                name: user.name,
+                username: user.username,
+                email: user.email,
+            },
+        });
+    }catch(err){
+        console.error("Error during updating user profile!",err.message);
+        res.status(500).send("Server error!");
+    }
+
+}
+
+
+export default { signup, login, uploadProfile,updateUserProfile };

@@ -12,6 +12,7 @@ const upload = multer({storage});
 userRouter.post("/update_profile_picture",auth,upload.single("profilePicture"),userController.uploadProfile);
 userRouter.post("/signup",userController.signup);
 userRouter.post("/login",userController.login);
+userRouter.post("/updateUserProfile",auth,userController.updateUserProfile);
 
 
 
