@@ -195,5 +195,45 @@ const getUserProfile = async(req,res)=>{
 
 };
 
+const updateProfileData = async(req,res) =>{
+    const userId = req.user.id;
+    const {...newProfileData} = req.body;
 
-export default { signup, login, uploadProfile,updateUserProfile,getUserProfile};
+    try{
+        const user = await User.findById(userId);
+        if(!user){
+            return res.status(404).json({ message: "User not found!" });
+        }   
+
+        const profileToUpdate = await Profile.findOne({userId});
+        Object.assign(profileToUpdate,newProfileData);
+
+        await profileToUpdate.save();
+
+        return res.json({message:"profile updated!"});
+
+    }catch(err){
+        console.error("Error updating profile information!",err.message);
+        res.status(500).send("Server error!");
+    }
+};
+
+const getAllUserProfile = async(req,res) =>{
+  ;
+
+    try{
+        const profiles = await Profile.find().populate("userId","name username email profilePicture");
+
+        if(profiles.length == 0){
+            return res.status(404).json({ message: "Profiles not found!" });
+        }
+
+        return res.status(200).json({profiles});
+    }catch(err){
+        console.error("Error fetching profiles!",err.message);
+        res.status(500).send("Server error!");
+    }
+};
+
+
+export default { signup, login, uploadProfile,updateUserProfile,getUserProfile,updateProfileData,getAllUserProfile};
