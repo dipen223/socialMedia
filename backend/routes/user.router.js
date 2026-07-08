@@ -13,6 +13,7 @@ userRouter.post("/update_profile_picture",auth,upload.single("profilePicture"),u
 userRouter.post("/signup",userController.signup);
 userRouter.post("/login",userController.login);
 userRouter.post("/updateUserProfile",auth,userController.updateUserProfile);
+userRouter.get("/profile",auth,userController.getUserProfile);
 
 
 

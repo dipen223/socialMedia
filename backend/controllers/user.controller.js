@@ -171,7 +171,29 @@ const updateUserProfile = async (req,res)=>{
         res.status(500).send("Server error!");
     }
 
-}
+};
+
+const getUserProfile = async(req,res)=>{
+      const userId = req.user.id;
+      try{
+        const user = await User.findById({userId});
+          if (!user) return res.status(404).json({ message: "User not found!" });
+
+          const userProfile = await Profile.findOne({userId:user._id}).populate("userId","name username email profilePicture");
+          
+           if (!userProfile) {
+            return res.status(404).json({ message: "Profile not found!" });
+        }
+
+          return res.json(userProfile);
+        
+      }catch(err){
+        console.error("Error fetching user info & profile!",err.message);
+        res.status(500).send("Server error!");
+    }
 
 
-export default { signup, login, uploadProfile,updateUserProfile };
+};
+
+
+export default { signup, login, uploadProfile,updateUserProfile,getUserProfile};
