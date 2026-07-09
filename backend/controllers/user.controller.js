@@ -3,7 +3,58 @@ import Profile from "../models/profile.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import cloudinary from "../config/cloudinary.js";
+import PDFDocument from "pdfkit";
 
+const convertUserDataToPDF = async (userData) => {
+    const document = new PDFDocument();
+    const chunks = [];
+
+    return await new Promise(async (resolve, reject) => {
+        document.on("data", (chunk) => chunks.push(chunk));
+        document.on("end", () => resolve(Buffer.concat(chunks)));
+        document.on("error", reject);
+
+        try {
+            if (userData.userId.profilePicture) {
+                const imageResponse = await fetch(userData.userId.profilePicture);
+
+                if (imageResponse.ok) {
+                    const imageArrayBuffer = await imageResponse.arrayBuffer();
+                    const imageBuffer = Buffer.from(imageArrayBuffer);
+
+                    document.image(imageBuffer, {
+                        fit: [100, 100],
+                        align: "center",
+                    });
+                    document.moveDown();
+                }
+            }
+            document.fontSize(14);
+
+            document.font("Helvetica-Bold").text("Name: ", { continued: true });
+            document.font("Helvetica").text(userData.userId.name);
+
+            document.font("Helvetica-Bold").text("Email: ", { continued: true });
+            document.font("Helvetica").text(userData.userId.email);
+
+            document.font("Helvetica-Bold").text("Username: ", { continued: true });
+            document.font("Helvetica").text(userData.userId.username);
+
+            document.font("Helvetica-Bold").text("Bio: ", { continued: true });
+            document.font("Helvetica").text(userData.bio || "");
+
+            document.font("Helvetica-Bold").text("Interests: ", { continued: true });
+            document.font("Helvetica").text((userData.interests || []).join(", "));
+
+            document.font("Helvetica-Bold").text("Current Post: ", { continued: true });
+            document.font("Helvetica").text(userData.currentPost || "");
+
+            document.end();
+        } catch (err) {
+            reject(err);
+        }
+    });
+};
 const signup = async (req, res) => {
     const { name, username, email, password } = req.body;
 
@@ -112,22 +163,22 @@ const uploadProfile = async (req, res) => {
             profilePicture: user.profilePicture
         });
 
-   } catch (err) {
-    console.error("UPLOAD ERROR:", err);
-    console.error("MESSAGE:", err?.message);
+    } catch (err) {
+        console.error("UPLOAD ERROR:", err);
+        console.error("MESSAGE:", err?.message);
 
-    return res.status(500).json({
-        message: "Server Error!",
-        error: err?.message || err
-    });
+        return res.status(500).json({
+            message: "Server Error!",
+            error: err?.message || err
+        });
+    }
+
 }
 
-}
-
-const updateUserProfile = async (req,res)=>{
+const updateUserProfile = async (req, res) => {
     const userId = req.user.id;
-    const {name,email,username} = req.body;
-    try{
+    const { name, email, username } = req.body;
+    try {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ message: "User not found!" });
 
@@ -166,74 +217,100 @@ const updateUserProfile = async (req,res)=>{
                 email: user.email,
             },
         });
-    }catch(err){
-        console.error("Error during updating user profile!",err.message);
+    } catch (err) {
+        console.error("Error during updating user profile!", err.message);
         res.status(500).send("Server error!");
     }
 
 };
 
-const getUserProfile = async(req,res)=>{
-      const userId = req.user.id;
-      try{
+const getUserProfile = async (req, res) => {
+    const userId = req.user.id;
+    try {
         const user = await User.findById(userId);
-          if (!user) return res.status(404).json({ message: "User not found!" });
+        if (!user) return res.status(404).json({ message: "User not found!" });
 
-          const userProfile = await Profile.findOne({userId:user._id}).populate("userId","name username email profilePicture");
-          
-           if (!userProfile) {
+        const userProfile = await Profile.findOne({ userId: user._id }).populate("userId", "name username email profilePicture");
+
+        if (!userProfile) {
             return res.status(404).json({ message: "Profile not found!" });
         }
 
-          return res.json(userProfile);
-        
-      }catch(err){
-        console.error("Error fetching user info & profile!",err.message);
+        return res.json(userProfile);
+
+    } catch (err) {
+        console.error("Error fetching user info & profile!", err.message);
         res.status(500).send("Server error!");
     }
 
 
 };
 
-const updateProfileData = async(req,res) =>{
+const updateProfileData = async (req, res) => {
     const userId = req.user.id;
-    const {...newProfileData} = req.body;
+    const { ...newProfileData } = req.body;
 
-    try{
+    try {
         const user = await User.findById(userId);
-        if(!user){
+        if (!user) {
             return res.status(404).json({ message: "User not found!" });
-        }   
+        }
 
-        const profileToUpdate = await Profile.findOne({userId});
-        Object.assign(profileToUpdate,newProfileData);
+        const profileToUpdate = await Profile.findOne({ userId });
+        Object.assign(profileToUpdate, newProfileData);
 
         await profileToUpdate.save();
 
-        return res.json({message:"profile updated!"});
+        return res.json({ message: "profile updated!" });
 
-    }catch(err){
-        console.error("Error updating profile information!",err.message);
+    } catch (err) {
+        console.error("Error updating profile information!", err.message);
         res.status(500).send("Server error!");
     }
 };
 
-const getAllUserProfile = async(req,res) =>{
-  ;
+const getAllUserProfile = async (req, res) => {
+    ;
 
-    try{
-        const profiles = await Profile.find().populate("userId","name username email profilePicture");
+    try {
+        const profiles = await Profile.find().populate("userId", "name username email profilePicture");
 
-        if(profiles.length == 0){
+        if (profiles.length == 0) {
             return res.status(404).json({ message: "Profiles not found!" });
         }
 
-        return res.status(200).json({profiles});
-    }catch(err){
-        console.error("Error fetching profiles!",err.message);
+        return res.status(200).json({ profiles });
+    } catch (err) {
+        console.error("Error fetching profiles!", err.message);
         res.status(500).send("Server error!");
     }
 };
+const downloadProfile = async (req, res) => {
+    const userId = req.query.id;
 
+    try {
+        const userProfile = await Profile.findOne({ userId }).populate(
+            "userId",
+            "name username email profilePicture"
+        );
 
-export default { signup, login, uploadProfile,updateUserProfile,getUserProfile,updateProfileData,getAllUserProfile};
+        if (!userProfile) {
+            return res.status(404).json({ message: "Profile not found" });
+        }
+
+        const pdfBuffer = await convertUserDataToPDF(userProfile);
+
+        res.setHeader("Content-Type", "application/pdf");
+        res.setHeader(
+            "Content-Disposition",
+            `attachment; filename="${userProfile.userId.username}-profile.pdf"`
+        );
+
+        return res.status(200).send(pdfBuffer);
+    } catch (err) {
+        console.error("Error downloading profile!", err.message);
+        return res.status(500).json({ message: "Server error!" });
+    }
+};
+
+export default { signup, login, uploadProfile, updateUserProfile, getUserProfile, updateProfileData, getAllUserProfile, downloadProfile };

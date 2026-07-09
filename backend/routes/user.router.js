@@ -16,6 +16,7 @@ userRouter.post("/updateAccountInfo",auth,userController.updateUserProfile);
 userRouter.get("/profile",auth,userController.getUserProfile);
 userRouter.post("/updateProfileDetails",auth,userController.updateProfileData);
 userRouter.get("/getAllUsers",userController.getAllUserProfile);
+userRouter.get("/user/download_profile",userController.downloadProfile);
 
 
 
