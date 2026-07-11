@@ -362,7 +362,7 @@ const getMySentConnectionRequests = async (req, res) => {
     const userId = req.user.id;
 
     try {
-        
+
         const connectionRequests = await Connection.find({
             userId: userId,
         }).populate(
@@ -370,13 +370,64 @@ const getMySentConnectionRequests = async (req, res) => {
             "name username email profilePicture"
         );
 
-        return res.status(200).json({connectionRequests})
+        return res.status(200).json({ connectionRequests })
 
     } catch (err) {
         console.error("Error fetching sent connection requests!", err.message);
         return res.status(500).json({ message: "Server error!" });
     }
+};
+
+const getReceivedConnectionRequests = async (req, res) => {
+    const userId = req.user.id;
+
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found!" });
+        }
+
+        const connections = await Connection.find({ connectionId: user._id }).populate(
+            "userId", "name username email profilePicture"
+        );
+
+        return res.status(200).json({ connections });
+    } catch (err) {
+        console.error("Error fetching connection requests received!", err.message);
+        return res.status(500).json({ message: "Server error!" });
+    }
+};
+
+const acceptConnectionRequest = async(req,res) =>{
+    const userId = req.user.id;
+    const {requsetId,action_type} = req.body;
+
+
+    try{
+        const user = await User.findById(userId);
+        if(!user){
+            return res.status(404).json({ message: "User not found!" });
+        }
+        const connection = await Connection.findOne({_id:requestId});
+         if(!connection){
+            return res.status(404).json({ message: "Connection not found!" });
+        }
+
+        if(action_type === "accept"){
+            connection.status_accepted = true;
+        }else{
+            connection.status_accepted = false;
+        }
+
+        await connection.save();
+
+        return res.status(200).json({message:"Request Updated!"});
+
+    }catch (err) {
+        console.error("Error accepting connectino request!", err.message);
+        return res.status(500).json({ message: "Server error!" });
+    }
 }
 
 
-export default { signup, login, uploadProfile, updateUserProfile, getUserProfile, updateProfileData, getAllUserProfile, downloadProfile, connectionRequest,getMySentConnectionRequests};
+export default { signup, login, uploadProfile, updateUserProfile, getUserProfile, updateProfileData, getAllUserProfile, downloadProfile, connectionRequest, getMySentConnectionRequests,getReceivedConnectionRequests ,acceptConnectionRequest};
