@@ -13,17 +13,7 @@ const postSchema = new Schema({
     },
     likes:{
         type:Number,
-        deault:0
-
-    },
-    createdAt:{
-        type:Date,
-        default:Date.now,
-
-    },
-    updatedAt:{
-         type:Date,
-        default:Date.now,
+        default:0
 
     },
     media:{
@@ -42,9 +32,11 @@ const postSchema = new Schema({
 
     }
 
+},{
+    timestamps:true
 });
 
 
-const Post =  new mongoose.Model("Post",postSchema);
+const Post =  new mongoose.model("Post",postSchema);
 
 export default Post;
