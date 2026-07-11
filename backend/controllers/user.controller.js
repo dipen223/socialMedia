@@ -1,5 +1,6 @@
 import User from "../models/user.model.js";
 import Profile from "../models/profile.model.js";
+import Connection from "../models/connections.model.js"
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import cloudinary from "../config/cloudinary.js";
@@ -313,4 +314,69 @@ const downloadProfile = async (req, res) => {
     }
 };
 
-export default { signup, login, uploadProfile, updateUserProfile, getUserProfile, updateProfileData, getAllUserProfile, downloadProfile };
+
+const connectionRequest = async (req, res) => {
+    const userId = req.user.id;
+    const { connectionId } = req.body;
+
+    try {
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found!" });
+        }
+
+        const connectionUser = await User.findOne({ _id: connectionId });
+        if (!connectionUser) {
+            return res.status(400).json({ message: "Connection user not found!" });
+        }
+
+        const existingRequest = await Connection.findOne({
+            userId: user._id,
+            connectionId: connectionUser._id
+        });
+
+        if (existingRequest) {
+            return res.status(400).json({ messgae: "Request Already Sent!" });
+        }
+
+        const request = new Connection({
+            userId: user._id,
+            connectionId: connectionUser._id
+        });
+
+        await request.save();
+
+
+        return res.json({ message: "Request Sent" });
+
+
+
+
+    } catch (err) {
+        console.error("Error sending a request !", err.message);
+        return res.status(500).json({ message: "Server error!" });
+    }
+};
+
+const getMySentConnectionRequests = async (req, res) => {
+    const userId = req.user.id;
+
+    try {
+        
+        const connectionRequests = await Connection.find({
+            userId: userId,
+        }).populate(
+            "connectionId",
+            "name username email profilePicture"
+        );
+
+        return res.status(200).json({connectionRequests})
+
+    } catch (err) {
+        console.error("Error fetching sent connection requests!", err.message);
+        return res.status(500).json({ message: "Server error!" });
+    }
+}
+
+
+export default { signup, login, uploadProfile, updateUserProfile, getUserProfile, updateProfileData, getAllUserProfile, downloadProfile, connectionRequest,getMySentConnectionRequests};
