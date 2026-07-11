@@ -8,8 +8,14 @@ const storage = multer.memoryStorage();
 
 const upload = multer({storage});
 
-// postsRouter.get("/allPosts",postsController);
+postsRouter.get("/allPosts",auth,postsController.getAllPosts);
 postsRouter.post("/post",auth,upload.single("media"),postsController.createPost);
+postsRouter.delete("/post/:postId",auth,postsController.deletePost);
+postsRouter.patch(
+    "/posts/:postId/like",
+    auth,
+    postsController.likePost
+);
 
 
 
