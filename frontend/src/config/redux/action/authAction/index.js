@@ -35,3 +35,20 @@ export const registerUser = createAsyncThunk(
     }
   },
 );
+
+
+export const getUserProfile = createAsyncThunk(
+  "auth/getUserProfile",
+  async (_, thunkAPI) => {
+    try {
+      const response = await clientServer.get("/profile");
+      return response.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message ||
+          error.message ||
+          "Failed to fetch profile"
+      );
+    }
+  }
+);
