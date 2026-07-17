@@ -1,0 +1,28 @@
+.discover { display: grid; gap: 18px; }
+.header, .status, .card { border: 1px solid #dfe8e2; background: #fff; box-shadow: 0 10px 30px rgba(23, 37, 30, 0.05); }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 26px; border-radius: 16px; }
+.header p { margin-bottom: 5px; color: #1f6b4f; font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.header h1 { margin-bottom: 7px; color: #17251e; font-size: 28px; }
+.header span { color: #607068; font-size: 14px; line-height: 1.5; }
+.header strong { flex: 0 0 auto; padding: 7px 11px; border-radius: 999px; background: #e9f3ed; color: #1f6b4f; font-size: 12px; }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.card { display: flex; min-width: 0; flex-direction: column; align-items: center; padding: 24px 20px 20px; border-radius: 16px; text-align: center; }
+.avatar { display: grid; overflow: hidden; width: 72px; height: 72px; place-items: center; border: 3px solid #dcebe1; border-radius: 50%; background: #e9f3ed; color: #1f6b4f; font-size: 21px; font-weight: 800; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.identity { min-width: 0; margin-top: 13px; }
+.identity h2, .identity p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.identity h2 { color: #17251e; font-size: 17px; }
+.identity p { margin-top: 3px; color: #718078; font-size: 12px; }
+.bio { min-height: 42px; margin: 13px 0; color: #607068; font-size: 13px; line-height: 1.55; }
+.interests { display: flex; min-height: 27px; flex-wrap: wrap; justify-content: center; gap: 5px; margin: 0 0 16px; padding: 0; list-style: none; }
+.interests li { padding: 5px 8px; border-radius: 999px; background: #f1f6f2; color: #526159; font-size: 10px; font-weight: 700; }
+.connectButton { width: 100%; min-height: 40px; margin-top: auto; border: 0; border-radius: 999px; background: #1f6b4f; color: #fff; cursor: pointer; font: 750 13px inherit; }
+.connectButton:hover:not(:disabled) { background: #17583f; }
+.connectButton:disabled { background: #dce8e0; color: #607068; cursor: default; }
+.status { padding: 44px 24px; border-radius: 16px; color: #607068; text-align: center; }
+.status h2 { margin-bottom: 6px; color: #17251e; }
+.error { border-color: #f0cfcb; background: #fff8f7; color: #933c34; }
+.error button { margin-top: 12px; padding: 8px 14px; border: 0; border-radius: 999px; background: #1f6b4f; color: #fff; cursor: pointer; }
+.cardError { margin-top: 8px; color: #a13a32; font-size: 11px; }
+@media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+@media (max-width: 520px) { .header { align-items: flex-start; padding: 20px; } .header strong { display: none; } .card { border-radius: 12px; } }

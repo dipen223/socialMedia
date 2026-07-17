@@ -15,3 +15,24 @@ export const getAllPosts = createAsyncThunk(
         }
     }
 )
+
+export const createNewPost = createAsyncThunk(
+    "post/createNewPost",
+    async ({ body, media }, thunkAPI) => {
+        try {
+            const formData = new FormData();
+            formData.append("body", body);
+
+            if (media) {
+                formData.append("media", media);
+            }
+
+            const response = await clientServer.post("/post", formData);
+            return response.data;
+        } catch (err) {
+            return thunkAPI.rejectWithValue(
+                err.response?.data?.message || err.message || "Failed to create post"
+            );
+        }
+    }
+);

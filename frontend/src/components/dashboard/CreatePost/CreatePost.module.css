@@ -1,0 +1,48 @@
+.composer { padding: 18px 20px 14px; border: 1px solid #dfe8e2; border-radius: 16px; background: #fff; box-shadow: 0 10px 30px rgba(23, 37, 30, .05); }
+.startRow { display: flex; align-items: center; gap: 12px; }
+.avatar { display: grid; overflow: hidden; width: 46px; height: 46px; flex: 0 0 46px; place-items: center; border: 2px solid #dcebe1; border-radius: 50%; background: #e9f3ed; color: #1f6b4f; font-size: 14px; font-weight: 800; }
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.prompt { min-width: 0; min-height: 46px; flex: 1; padding: 0 18px; overflow: hidden; border: 1px solid #d8e2db; border-radius: 999px; background: #f5f7f5; color: #66756d; cursor: pointer; font: 500 14px inherit; text-align: left; text-overflow: ellipsis; white-space: nowrap; transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease; }
+.prompt:hover { border-color: #a9c7b4; background: #f0f5f1; }
+.prompt:focus-visible, .actions button:focus-visible { outline: 3px solid rgba(31, 107, 79, .2); outline-offset: 2px; }
+.actions { display: flex; align-items: center; gap: 6px; margin-top: 14px; padding-top: 12px; border-top: 1px solid #e8ede9; }
+.actions button { display: inline-flex; min-height: 36px; align-items: center; gap: 7px; padding: 0 11px; border: 0; border-radius: 9px; background: transparent; color: #607068; cursor: pointer; font: 700 12px inherit; transition: background 150ms ease, color 150ms ease; }
+.actions button:hover { background: #e9f3ed; color: #1f6b4f; }
+.actions svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.actions .postButton { min-height: 38px; margin-left: auto; padding: 0 16px; border-radius: 999px; background: #1f6b4f; color: #fff; }
+.actions .postButton:hover { background: #17583f; color: #fff; }
+@media (max-width: 520px) { .composer { padding: 15px; border-radius: 12px; } .avatar { width: 42px; height: 42px; flex-basis: 42px; } .prompt { min-height: 42px; padding: 0 14px; font-size: 13px; } .actions { gap: 2px; } .actions button { padding: 0 8px; } .actions .postButton { padding: 0 13px; } }
+@media (max-width: 390px) { .actions button:not(.postButton) span { display: none; } }
+
+.overlay { position: fixed; inset: 0; z-index: 500; display: grid; place-items: center; padding: 20px; background: rgba(16, 27, 21, .58); backdrop-filter: blur(4px); }
+.modal { width: min(100%, 560px); max-height: calc(100vh - 40px); overflow-y: auto; border: 1px solid #dbe5de; border-radius: 18px; background: #fff; box-shadow: 0 28px 80px rgba(14, 28, 20, .28); }
+.modalHeader { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid #e6ece8; }
+.modalHeader h2 { color: #17251e; font-size: 20px; }
+.modalHeader button { display: grid; width: 34px; height: 34px; place-items: center; border: 0; border-radius: 50%; background: #f1f5f2; color: #526159; cursor: pointer; font-size: 23px; line-height: 1; }
+.modal form { display: block; padding: 20px; }
+.modalIdentity { display: flex; align-items: center; gap: 11px; }
+.modalIdentity div { display: grid; gap: 2px; }
+.modalIdentity strong { color: #17251e; font-size: 14px; }
+.modalIdentity div span { color: #718078; font-size: 12px; }
+.modal textarea { width: 100%; min-height: 150px; margin-top: 16px; padding: 0; resize: vertical; border: 0; outline: 0; background: transparent; color: #26352d; font: 400 17px/1.6 inherit; }
+.modal textarea::placeholder { color: #8a978f; }
+.preview { position: relative; overflow: hidden; margin-top: 14px; border: 1px solid #dfe8e2; border-radius: 13px; background: #f2f5f3; }
+.preview img, .preview video { display: block; width: 100%; max-height: 340px; object-fit: contain; }
+.preview > button { position: absolute; top: 9px; right: 9px; display: grid; width: 30px; height: 30px; place-items: center; border: 0; border-radius: 50%; background: rgba(20, 31, 25, .78); color: #fff; cursor: pointer; font-size: 19px; }
+.modalTools { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; padding: 10px 0; border-top: 1px solid #e8ede9; }
+.modalTools button { display: inline-flex; min-height: 36px; align-items: center; gap: 7px; padding: 0 10px; border: 0; border-radius: 9px; background: #e9f3ed; color: #1f6b4f; cursor: pointer; font: 700 12px inherit; }
+.modalTools svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+.modalTools span { color: #7a887f; font-size: 11px; }
+.modalError { margin-top: 8px; padding: 10px 12px; border-radius: 9px; background: #fff0ee; color: #983c34; font-size: 12px; }
+.modalFooter { display: flex; justify-content: flex-end; gap: 9px; margin-top: 12px; padding-top: 16px; border-top: 1px solid #e8ede9; }
+.modalFooter button { min-height: 40px; padding: 0 17px; border: 1px solid #d8e2db; border-radius: 999px; background: #fff; color: #526159; cursor: pointer; font: 750 13px inherit; }
+.modalFooter button[type="submit"] { min-width: 90px; border-color: #1f6b4f; background: #1f6b4f; color: #fff; }
+.modalFooter button:disabled { opacity: .55; cursor: not-allowed; }
+.srOnly { position: absolute; overflow: hidden; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+
+@media (max-width: 520px) {
+  .overlay { align-items: end; padding: 0; }
+  .modal { width: 100%; max-height: 92vh; border-radius: 18px 18px 0 0; }
+  .modal form { padding: 17px; }
+  .modal textarea { min-height: 130px; font-size: 16px; }
+}

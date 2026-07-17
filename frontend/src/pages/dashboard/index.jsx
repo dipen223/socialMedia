@@ -1,48 +1,20 @@
-import { useRouter } from 'next/router';
-import React, { useState, useEffect } from 'react';
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import Feed from "@/components/dashboard/Feed";
+import { getAllPosts } from "@/config/redux/action/postAction";
 
-import { useDispatch } from 'react-redux';
-import { getUserProfile } from "@/config/redux/action/authAction";
-import { getAllPosts } from '@/config/redux/action/postAction';
+export default function Dashboard() {
+  const dispatch = useDispatch();
+  const posts = useSelector((state) => state.posts.posts);
 
-const Dashboard = () => {
-    const router = useRouter();
-    const dispatch = useDispatch();
-    const [checkingAuth, setCheckingAuth] = useState(true);
+  useEffect(() => {
+    dispatch(getAllPosts());
+  }, [dispatch]);
 
-
-    useEffect(() => {
-        const verifyUser = async () => {
-            const token = localStorage.getItem("token");
-            if (!token) {
-                router.push("/login");
-                return;
-            }
-
-
-            try {
-                await dispatch(getUserProfile()).unwrap();
-                await dispatch(getAllPosts()).unwrap();
-                setCheckingAuth(false);
-            } catch {
-                localStorage.removeItem("token");
-                router.replace("/login");
-            }
-        };
-        verifyUser();
-
-    }, [dispatch,router]);
-
-
-
-    if (checkingAuth) {
-        return <div>Checking Authentication....</div>
-    }
-
-
-    return (
-        <div>Dashboard</div>
-    )
+  return (
+    <DashboardLayout>
+      <Feed posts={posts} />
+    </DashboardLayout>
+  );
 }
-
-export default Dashboard;

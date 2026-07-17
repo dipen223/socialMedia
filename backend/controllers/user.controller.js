@@ -336,7 +336,7 @@ const connectionRequest = async (req, res) => {
         });
 
         if (existingRequest) {
-            return res.status(400).json({ messgae: "Request Already Sent!" });
+            return res.status(400).json({ message: "Request already sent!" });
         }
 
         const request = new Connection({

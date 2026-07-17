@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { loginUser, registerUser,getUserProfile} from "@/config/redux/action/authAction";
+import { loginUser, registerUser, getUserProfile } from "@/config/redux/action/authAction";
 
 const initialState = {
   user: null,
@@ -25,7 +25,7 @@ const authSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    
+
     [loginUser, registerUser].forEach((request) => {
       builder
         .addCase(request.pending, (state) => {
@@ -48,26 +48,25 @@ const authSlice = createSlice({
           state.message = action.payload || "Request failed";
         });
     });
-     builder
-    .addCase(getUserProfile.pending, (state) => {
-      state.isLoading = true;
-      state.isError = false;
-      state.message = "";
-    })
-    .addCase(getUserProfile.fulfilled, (state, action) => {
-      state.isLoading = false;
-      state.isSuccess = true;
-      state.isLoggedIn = true;
-      state.user = action.payload;
-    })
-    .addCase(getUserProfile.rejected, (state, action) => {
-      state.isLoading = false;
-      state.isError = true;
-      state.isLoggedIn = false;
-      state.user = null;
-      state.message = action.payload || "Failed to fetch profile";
-    });
-
+    builder
+      .addCase(getUserProfile.pending, (state) => {
+        state.isLoading = true;
+        state.isError = false;
+        state.message = "";
+      })
+      .addCase(getUserProfile.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.isLoggedIn = true;
+        state.user = action.payload;
+      })
+      .addCase(getUserProfile.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.isLoggedIn = false;
+        state.user = null;
+        state.message = action.payload || "Failed to fetch profile";
+      })
   },
 });
 

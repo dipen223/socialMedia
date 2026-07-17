@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { getAllPosts } from "../../action/postAction";
+import { createNewPost, getAllPosts } from "../../action/postAction";
 
 const initialState = {
   posts: [],
@@ -8,6 +8,8 @@ const initialState = {
   isError: false,
   message: "",
   postFetched:false,
+  isCreating: false,
+  createError: "",
 };
 
 const postSlice  = createSlice({
@@ -35,6 +37,17 @@ const postSlice  = createSlice({
             state.isLoading = false;
             state.isError = true;
             state.message = action.payload
+        })
+        .addCase(createNewPost.pending, (state) => {
+            state.isCreating = true;
+            state.createError = "";
+        })
+        .addCase(createNewPost.fulfilled, (state) => {
+            state.isCreating = false;
+        })
+        .addCase(createNewPost.rejected, (state, action) => {
+            state.isCreating = false;
+            state.createError = action.payload || "Failed to create post";
         })
     }
 

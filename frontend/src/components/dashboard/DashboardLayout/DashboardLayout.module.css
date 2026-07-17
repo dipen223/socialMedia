@@ -1,0 +1,45 @@
+.layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 650px);
+  justify-content: start;
+  align-items: start;
+  gap: 24px;
+  width: min(100% - 40px, 1240px);
+  margin: 0 auto;
+}
+
+.layout > aside {
+  margin-right: 0;
+  margin-left: 0;
+}
+
+.centerColumn {
+  min-width: 0;
+  margin: 24px 0;
+}
+
+.checking {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  color: #607068;
+}
+
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: 220px minmax(0, 1fr);
+    width: min(100% - 32px, 850px);
+    gap: 16px;
+  }
+}
+
+@media (max-width: 700px) {
+  .layout {
+    display: block;
+    width: calc(100% - 24px);
+  }
+
+  .centerColumn {
+    margin: 12px 0;
+  }
+}

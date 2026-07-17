@@ -1,0 +1,109 @@
+.feed {
+  display: grid;
+  gap: 16px;
+}
+
+.post,
+.empty {
+  border: 1px solid #dfe8e2;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(23, 37, 30, 0.05);
+}
+
+.srOnly { position: absolute; overflow: hidden; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+
+.postList {
+  display: grid;
+  gap: 16px;
+}
+
+.post {
+  overflow: hidden;
+  padding: 20px;
+}
+
+.author {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.avatar {
+  display: grid;
+  overflow: hidden;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e9f3ed;
+  color: #1f6b4f;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.author div {
+  display: grid;
+  gap: 2px;
+}
+
+.author strong {
+  color: #17251e;
+  font-size: 14px;
+}
+
+.author div span,
+.postFooter,
+.empty p {
+  color: #718078;
+  font-size: 12px;
+}
+
+.body {
+  margin: 18px 0;
+  color: #28372f;
+  line-height: 1.65;
+}
+
+.media {
+  display: block;
+  width: 100%;
+  max-height: 520px;
+  margin-bottom: 18px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.postFooter {
+  padding-top: 14px;
+  border-top: 1px solid #e7ece9;
+  font-weight: 650;
+}
+
+.empty {
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.empty h2 {
+  margin-bottom: 7px;
+  color: #17251e;
+  font-size: 20px;
+}
+
+@media (max-width: 520px) {
+  .post {
+    border-radius: 12px;
+  }
+
+  .post {
+    padding: 16px;
+  }
+}
