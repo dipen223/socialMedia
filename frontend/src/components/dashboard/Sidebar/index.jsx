@@ -1,34 +1,41 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { useSelector } from "react-redux";
 import styles from "./Sidebar.module.css";
-
-
-const sidebarOptions = [
-  { href: "/dashboard", label: "Home" },
-  { href: "/dashboard/profile", label: "My Profile" },
-  { href: "/dashboard/connections", label: "Connections" },
-  { href: "/dashboard/messages", label: "Messages" },
-  { href: "/dashboard/discover", label: "Discover People" },
-  { href: "/dashboard/settings", label: "Settings" },
-];
 
 
 const Sidebar = () => {
   const router = useRouter();
+  const profile = useSelector((state) => state.auth.user);
+  const user = profile?.userId || profile;
+  const sidebarOptions = [
+    { href: "/dashboard", label: "Home" },
+    { href: user?.username ? `/${user.username}` : "/dashboard/profile", label: "My Profile", profile: true },
+    { href: "/dashboard/connections", label: "Connections" },
+    { href: "/dashboard/messages", label: "Messages" },
+    { href: "/dashboard/discover", label: "Discover People" },
+    { href: "/dashboard/settings", label: "Settings" },
+  ];
 
   return (
     <aside className={styles.aside}>
       <nav aria-label="Dashboard navigation" className={styles.sidebarNav}>
-        {sidebarOptions.map((option) => (
-          <Link
-            href={option.href}
-            key={option.href}
-            className={router.pathname === option.href ? styles.active : ""}
-            aria-current={router.pathname === option.href ? "page" : undefined}
-          >
-            {option.label}
-          </Link>
-        ))}
+        {sidebarOptions.map((option) => {
+          const isActive = option.profile
+            ? router.pathname === "/[username]" || router.pathname === "/dashboard/profile"
+            : router.pathname === option.href;
+
+          return (
+            <Link
+              href={option.href}
+              key={option.href}
+              className={isActive ? styles.active : ""}
+              aria-current={isActive ? "page" : undefined}
+            >
+              {option.label}
+            </Link>
+          );
+        })}
       </nav>
     </aside>
   );

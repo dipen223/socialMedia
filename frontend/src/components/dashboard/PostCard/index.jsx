@@ -1,3 +1,308 @@
-export default function PostCard() {
-  return null;
+import { useEffect, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { deletePost, likePost } from "@/config/redux/action/postAction";
+import styles from "./PostCard.module.css";
+
+const LikeIcon = () => (
+  <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M6.633 10.25c.806 0 1.533-.446 2.031-1.08a9.041 9.041 0 0 1 2.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 0 0 .322-1.672V2.75a.75.75 0 0 1 .75-.75 2.25 2.25 0 0 1 2.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558.107 1.282.725 1.282m0 0h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 0 1-2.649 7.521c-.388.482-.987.729-1.605.729H13.48c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 0 0-1.423-.23H5.904m10.598-9.75H14.25M5.904 18.5c.083.205.173.405.27.602.197.4-.078.898-.523.898h-.908c-.889 0-1.713-.518-1.972-1.368a12 12 0 0 1-.521-3.507c0-1.553.295-3.036.831-4.398C3.387 9.953 4.167 9.5 5 9.5h1.053c.472 0 .745.556.5.96a8.958 8.958 0 0 0-1.302 4.665c0 1.194.232 2.333.654 3.375Z" />
+  </svg>
+);
+
+const CommentIcon = () => (
+  <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 20.25c4.97 0 9-3.694 9-8.25s-4.03-8.25-9-8.25S3 7.444 3 12c0 2.104.859 4.023 2.273 5.48.432.447.74 1.04.586 1.641a4.483 4.483 0 0 1-.923 1.785A5.969 5.969 0 0 0 6 21c1.282 0 2.47-.402 3.445-1.087.81.22 1.668.337 2.555.337Z" />
+  </svg>
+);
+
+const MoreIcon = () => (
+  <svg fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="5" cy="12" r="1.75" />
+    <circle cx="12" cy="12" r="1.75" />
+    <circle cx="19" cy="12" r="1.75" />
+  </svg>
+);
+
+const SaveIcon = () => (
+  <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 16.5 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0 1 11.186 0Z" />
+  </svg>
+);
+
+const DeleteIcon = () => (
+  <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+  </svg>
+);
+
+const HideIcon = () => (
+  <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.52 10.52 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243" />
+  </svg>
+);
+
+const ReportIcon = () => (
+  <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v18m0-16.5h11.25l-1.5 3 1.5 3H3" />
+  </svg>
+);
+
+const formatPostDate = (createdAt) => {
+  if (!createdAt) return "Recently";
+
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: new Date(createdAt).getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
+  }).format(new Date(createdAt));
+};
+
+export default function PostCard({ post }) {
+  const dispatch = useDispatch();
+  const menuRef = useRef(null);
+  const profile = useSelector((state) => state.auth.user);
+  const { deletingPostId, likingPostId } = useSelector((state) => state.posts);
+  const currentUser = profile?.userId || profile;
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [removedReason, setRemovedReason] = useState("");
+  const [notice, setNotice] = useState("");
+  const [showComments, setShowComments] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [comments, setComments] = useState([]);
+  const author = post.userId;
+  const hasPicture = author?.profilePicture && author.profilePicture !== "default.jpg";
+  const initials = author?.name?.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "S";
+  const isVideo = post.fileType?.startsWith("video/");
+  const isOwner = author?._id?.toString() === currentUser?._id?.toString();
+  const isLiked = post.likedBy?.some(
+    (userId) => userId.toString() === currentUser?._id?.toString()
+  ) || false;
+  const likeCount = post.likedBy?.length || 0;
+  const isLiking = likingPostId === post._id;
+  const isDeleting = deletingPostId === post._id;
+  const currentUserInitial = currentUser?.name?.[0]?.toUpperCase() || "Y";
+
+  useEffect(() => {
+    const closeMenu = (event) => {
+      if (event.key === "Escape") {
+        setIsMenuOpen(false);
+        setShowDeleteConfirm(false);
+      }
+
+      if (event.type === "mousedown" && !menuRef.current?.contains(event.target)) {
+        setIsMenuOpen(false);
+        setShowDeleteConfirm(false);
+      }
+    };
+
+    document.addEventListener("mousedown", closeMenu);
+    document.addEventListener("keydown", closeMenu);
+    return () => {
+      document.removeEventListener("mousedown", closeMenu);
+      document.removeEventListener("keydown", closeMenu);
+    };
+  }, []);
+
+  const closeAfter = (callback) => {
+    callback();
+    setIsMenuOpen(false);
+  };
+
+  const addComment = (event) => {
+    event.preventDefault();
+    const text = commentText.trim();
+    if (!text) return;
+
+    setComments((current) => [
+      ...current,
+      { id: `${Date.now()}-${current.length}`, text },
+    ]);
+    setCommentText("");
+  };
+
+  const sharePost = async () => {
+    const url = `${window.location.origin}${window.location.pathname}#post-${post._id}`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Ripple post", text: post.body, url });
+        return;
+      }
+
+      await navigator.clipboard.writeText(url);
+      setNotice("Post link copied to your clipboard.");
+    } catch (error) {
+      if (error.name !== "AbortError") setNotice("Could not share this post.");
+    }
+  };
+
+  const handleLike = async () => {
+    try {
+      await dispatch(likePost(post._id)).unwrap();
+    } catch (error) {
+      setNotice(error || "Could not update like.");
+    }
+  };
+
+  if (removedReason) {
+    return (
+      <div className={styles.removedNotice} role="status">
+        <span>{removedReason}</span>
+        <button type="button" onClick={() => setRemovedReason("")}>Undo</button>
+      </div>
+    );
+  }
+
+  const handleDelete = async () => {
+    try {
+      await dispatch(deletePost(post._id)).unwrap();
+    } catch (error) {
+      setShowDeleteConfirm(false);
+      setIsMenuOpen(false);
+      setNotice(error || "Could not delete this post.");
+    }
+  };
+
+  return (
+    <article className={styles.card} id={`post-${post._id}`}>
+      <header className={styles.header}>
+        <span className={styles.avatar}>
+          {hasPicture ? <img src={author.profilePicture} alt="" /> : initials}
+        </span>
+
+        <div className={styles.authorDetails}>
+          <strong>{author?.name || "Ripple member"}</strong>
+          <span>@{author?.username || "member"}</span>
+          <small>{formatPostDate(post.createdAt)} · Public</small>
+        </div>
+
+        <div className={styles.menuWrap} ref={menuRef}>
+          <button
+            className={styles.moreButton}
+            type="button"
+            aria-label="Post options"
+            aria-haspopup="menu"
+            aria-expanded={isMenuOpen}
+            onClick={() => setIsMenuOpen((open) => !open)}
+          >
+            <MoreIcon />
+          </button>
+
+          {isMenuOpen && (
+            <div className={styles.menu} role="menu">
+              {showDeleteConfirm ? (
+                <div className={styles.deleteConfirm}>
+                  <strong>Delete this post?</strong>
+
+                  <div>
+                    <button type="button" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
+                    <button type="button" disabled={isDeleting} onClick={handleDelete}>
+                      {isDeleting ? "Deleting..." : "Delete"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <button role="menuitem" type="button" onClick={() => closeAfter(() => setIsSaved((saved) => !saved))}>
+                    <span className={styles.menuIcon}><SaveIcon /></span>
+                    <strong>{isSaved ? "Unsave" : "Save"}</strong>
+                  </button>
+
+                  {isOwner ? (
+                    <button className={styles.dangerOption} role="menuitem" type="button" onClick={() => setShowDeleteConfirm(true)}>
+                      <span className={styles.menuIcon}><DeleteIcon /></span>
+                      <strong>Delete</strong>
+                    </button>
+                  ) : (
+                    <>
+                      <button role="menuitem" type="button" onClick={() => closeAfter(() => setRemovedReason("Post hidden from this view."))}>
+                        <span className={styles.menuIcon}><HideIcon /></span>
+                        <strong>Hide</strong>
+                      </button>
+                      <button role="menuitem" type="button" onClick={() => closeAfter(() => setNotice("Thanks. Your report choice was recorded locally."))}>
+                        <span className={styles.menuIcon}><ReportIcon /></span>
+                        <strong>Report</strong>
+                      </button>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+      </header>
+
+      {notice && <div className={styles.inlineNotice} role="status">{notice}<button type="button" onClick={() => setNotice("")}>×</button></div>}
+
+      <p className={styles.body}>{post.body}</p>
+
+      {post.media && (
+        <div className={styles.mediaWrap}>
+          {isVideo ? (
+            <video className={styles.media} src={post.media} controls preload="metadata" />
+          ) : (
+            <img className={styles.media} src={post.media} alt="Post attachment" />
+          )}
+        </div>
+      )}
+
+      <footer className={styles.footer}>
+        <div className={styles.stats}>
+          <span className={styles.likes}>
+            <span><LikeIcon /></span>
+            {likeCount} {likeCount === 1 ? "like" : "likes"}
+          </span>
+          {comments.length > 0 && <span>{comments.length} {comments.length === 1 ? "comment" : "comments"}</span>}
+        </div>
+
+        <div className={styles.actionBar}>
+          <button
+            className={isLiked ? styles.activeAction : ""}
+            type="button"
+            aria-pressed={isLiked}
+            aria-busy={isLiking}
+            disabled={isLiking}
+            onClick={handleLike}
+          >
+            <LikeIcon /> {isLiked ? "Liked" : "Like"}
+          </button>
+          <button type="button" aria-expanded={showComments} onClick={() => setShowComments((open) => !open)}>
+            <CommentIcon /> Comment
+          </button>
+          <button type="button" onClick={sharePost}>
+            <span aria-hidden="true">↗</span> Share
+          </button>
+        </div>
+
+        {showComments && (
+          <div className={styles.commentPanel}>
+            {comments.length > 0 && (
+              <ul className={styles.commentList}>
+                {comments.map((comment) => (
+                  <li key={comment.id}>
+                    <span className={styles.commentAvatar}>{currentUserInitial}</span>
+                    <div>
+                      <strong>{currentUser?.name || "You"}</strong>
+                      <p>{comment.text}</p>
+                      <small>Just now</small>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            <form className={styles.commentForm} onSubmit={addComment}>
+              <span className={styles.commentAvatar}>{currentUserInitial}</span>
+              <label className={styles.srOnly} htmlFor={`comment-${post._id}`}>Write a comment</label>
+              <input id={`comment-${post._id}`} value={commentText} onChange={(event) => setCommentText(event.target.value)} placeholder="Write a comment..." maxLength={500} />
+              <button type="submit" disabled={!commentText.trim()}>Post</button>
+            </form>
+          </div>
+        )}
+      </footer>
+    </article>
+  );
 }

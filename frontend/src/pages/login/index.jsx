@@ -39,13 +39,13 @@ export default function Login() {
   return (
     <main className={styles.page}>
       <Link href="/" className={styles.brand}>
-        <span>S</span> SocialHub
+        <span>R</span> Ripple
       </Link>
 
       <section className={styles.card}>
         <div className={styles.heading}>
           <p>Welcome back</p>
-          <h1>Log in to SocialHub</h1>
+          <h1>Log in to Ripple</h1>
           <span>Continue connecting with the people who matter.</span>
         </div>
 
@@ -77,15 +77,21 @@ export default function Login() {
             required
           />
 
+          {router.query.reason === "session-expired" && !isError && (
+            <p className={styles.info}>
+              Your session has expired. Please log in again.
+            </p>
+          )}
+
           {isError && <p className={styles.error}>{message}</p>}
 
-          <button className={styles.submitButton} disabled={isLoading} onClick={() => handleSubmit}>
+          <button className={styles.submitButton} type="submit" disabled={isLoading}>
             {isLoading ? "Logging in..." : "Log in"}
           </button>
         </form>
 
         <p className={styles.switchText}>
-          New to SocialHub? <Link href="/signup">Create an account</Link>
+          New to Ripple? <Link href="/signup">Create an account</Link>
         </p>
       </section>
 

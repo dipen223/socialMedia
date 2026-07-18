@@ -153,7 +153,7 @@ const uploadProfile = async (req, res) => {
         const fileUri = `data:${req.file.mimetype};base64,${fileStr}`;
 
         const result = await cloudinary.uploader.upload(fileUri, {
-            folder: "socialhub/profile_pictures",
+            folder: "ripple/profile_pictures",
         });
 
         user.profilePicture = result.secure_url;

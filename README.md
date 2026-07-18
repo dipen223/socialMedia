@@ -1,6 +1,6 @@
-# SocialHub
+# Ripple
 
-A full-stack social media platform where people can create accounts,
+Ripple is a full-stack social media platform where people can create accounts,
 share posts,and manage their profiles.
 
 ## Features
@@ -54,7 +54,7 @@ pages/
 Clone the repository
 
 ```bash
-git clone https://github.com/username/socialhub.git
+git clone https://github.com/username/ripple.git
 ```
 
 Install backend dependencies

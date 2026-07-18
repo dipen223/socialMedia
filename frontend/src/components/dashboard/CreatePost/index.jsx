@@ -22,13 +22,13 @@ export default function CreatePost() {
   const dispatch = useDispatch();
   const fileInputRef = useRef(null);
   const profile = useSelector((state) => state.auth.user);
-  const { isCreating, createError } = useSelector((state) => state.posts);
+  const { isCreating, createError, uploadProgress } = useSelector((state) => state.posts);
   const [isOpen, setIsOpen] = useState(false);
   const [body, setBody] = useState("");
   const [media, setMedia] = useState(null);
   const user = profile?.userId || profile;
   const hasPicture = user?.profilePicture && user.profilePicture !== "default.jpg";
-  const initials = user?.name?.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "SH";
+  const initials = user?.name?.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "R";
   const previewUrl = useMemo(() => (media ? URL.createObjectURL(media) : ""), [media]);
 
   useEffect(() => {
@@ -109,7 +109,7 @@ export default function CreatePost() {
                 <span className={styles.avatar}>
                   {hasPicture ? <img src={user.profilePicture} alt="" /> : initials}
                 </span>
-                <div><strong>{user?.name || "SocialHub member"}</strong><span>@{user?.username || "member"}</span></div>
+                <div><strong>{user?.name || "Ripple member"}</strong><span>@{user?.username || "member"}</span></div>
               </div>
 
               <label className={styles.srOnly} htmlFor="post-body">Post text</label>
@@ -142,10 +142,16 @@ export default function CreatePost() {
               </div>
 
               {createError && <p className={styles.modalError} role="alert">{createError}</p>}
+              {isCreating && media && (
+                <div className={styles.uploadStatus} role="status">
+                  <span style={{ width: `${uploadProgress}%` }} />
+                  <small>{uploadProgress < 100 ? `Uploading media ${uploadProgress}%` : "Finishing your post…"}</small>
+                </div>
+              )}
 
               <footer className={styles.modalFooter}>
                 <button type="button" onClick={closeModal} disabled={isCreating}>Cancel</button>
-                <button type="submit" disabled={isCreating || !body.trim()}>{isCreating ? "Posting..." : "Post"}</button>
+                <button type="submit" disabled={isCreating || !body.trim()}>{isCreating ? "Posting…" : "Post"}</button>
               </footer>
             </form>
           </section>

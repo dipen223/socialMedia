@@ -35,7 +35,7 @@ export default function Navbar() {
     .map((part) => part[0])
     .slice(0, 2)
     .join("")
-    .toUpperCase() || "SH";
+    .toUpperCase() || "R";
   const hasProfilePicture =
     user?.profilePicture && user.profilePicture !== "default.jpg";
 
@@ -72,15 +72,15 @@ export default function Navbar() {
   return (
     <header className={styles.header}>
       <nav className={styles.nav} aria-label="Main navigation">
-        <Link href="/dashboard" className={styles.brand} aria-label="SocialHub home">
+        <Link href="/dashboard" className={styles.brand} aria-label="Ripple home">
           <span className={styles.brandMark}>S</span>
-          <span className={styles.brandName}>SocialHub</span>
+          <span className={styles.brandName}>Ripple</span>
         </Link>
 
         <form className={styles.search} role="search" onSubmit={handleSearch}>
           <SearchIcon />
           <label className={styles.srOnly} htmlFor="dashboard-search">
-            Search SocialHub
+            Search Ripple
           </label>
           <input
             id="dashboard-search"
@@ -137,7 +137,7 @@ export default function Navbar() {
                   <strong>{user?.name || "Your profile"}</strong>
                   <span>@{user?.username || "member"}</span>
                 </div>
-                <Link href="/dashboard/profile" role="menuitem" onClick={() => setIsMenuOpen(false)}>
+                <Link href={user?.username ? `/${user.username}` : "/dashboard/profile"} role="menuitem" onClick={() => setIsMenuOpen(false)}>
                   View profile
                 </Link>
                 <span className={styles.dropdownDivider} aria-hidden="true" />

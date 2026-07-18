@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { useDispatch, useSelector } from "react-redux";
 import { getUserProfile } from "@/config/redux/action/authAction";
+import { logout } from "@/config/redux/reducer/authReducer";
 
 export default function useDashboardAuth() {
   const router = useRouter();
@@ -27,8 +28,8 @@ export default function useDashboardAuth() {
         await dispatch(getUserProfile()).unwrap();
         setCheckingAuth(false);
       } catch {
-        localStorage.removeItem("token");
-        router.replace("/login");
+        dispatch(logout());
+        router.replace("/login?reason=session-expired");
       }
     };
 

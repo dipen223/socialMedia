@@ -175,6 +175,16 @@
   font-size: 13px;
 }
 
+.info {
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid #cfe0d5;
+  border-radius: 9px;
+  color: #285f47;
+  background: #edf6f0;
+  font-size: 13px;
+}
+
 .terms {
   margin: 18px auto 0;
   max-width: 400px;

@@ -1,6 +1,6 @@
 import styles from "./SectionPanel.module.css";
 
-export default function SectionPanel({ eyebrow = "SocialHub", title, description, children }) {
+export default function SectionPanel({ eyebrow = "Ripple", title, description, children }) {
   return (
     <section className={styles.panel}>
       <p className={styles.eyebrow}>{eyebrow}</p>
