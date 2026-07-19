@@ -56,6 +56,7 @@ const createPost = async (req, res) => {
         let fileType = "";
         let mediaPublicId = "";
         let mediaResourceType = "";
+        let aiGenerated = false;
 
         if (req.body.mediaPublicId && req.body.mediaResourceType) {
             const expectedPrefix = `ripple/posts/${userId}/`;
@@ -76,6 +77,9 @@ const createPost = async (req, res) => {
             mediaUrl = asset.secure_url;
             mediaPublicId = asset.public_id;
             fileType = `${mediaResourceType}/${asset.format}`;
+            aiGenerated = mediaResourceType === "image"
+                && asset.context?.custom?.ai_generated === "true"
+                && asset.context?.custom?.owner === userId.toString();
         }
 
         const post = await Post.create({
@@ -84,7 +88,8 @@ const createPost = async (req, res) => {
             media: mediaUrl,
             fileType,
             mediaPublicId,
-            mediaResourceType
+            mediaResourceType,
+            aiGenerated
         });
 
         return res.status(201).json({

@@ -19,11 +19,16 @@ export const getAllPosts = createAsyncThunk(
 
 export const createNewPost = createAsyncThunk(
     "post/createNewPost",
-    async ({ body, media }, thunkAPI) => {
+    async ({ body, media, generatedMedia }, thunkAPI) => {
         try {
             let uploadedMedia = {};
 
-            if (media) {
+            if (generatedMedia) {
+                uploadedMedia = {
+                    mediaPublicId: generatedMedia.publicId,
+                    mediaResourceType: generatedMedia.resourceType
+                };
+            } else if (media) {
                 const { data: signedUpload } = await clientServer.post("/media/upload-signature", {
                     fileSize: media.size,
                     fileType: media.type

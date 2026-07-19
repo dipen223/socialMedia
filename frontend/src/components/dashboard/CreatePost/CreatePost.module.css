@@ -217,6 +217,189 @@
 .modal textarea::placeholder {
   color: #8a978f;
 }
+.modal textarea:disabled {
+  color: #526159;
+}
+.aiTools {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 2px 0 12px;
+}
+.aiTools > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.aiTools button {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 1px solid #b9d8c5;
+  border-radius: 999px;
+  background: #edf7f0;
+  color: #1f6b4f;
+  cursor: pointer;
+  font: 750 12px inherit;
+}
+.aiTools button:hover:not(:disabled) {
+  border-color: #79b28e;
+  background: #e2f2e7;
+}
+.aiTools button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.aiTools svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.6;
+}
+.aiTools > span {
+  color: #809087;
+  font-size: 10px;
+  text-align: right;
+}
+.grammarSuggestion {
+  margin-bottom: 14px;
+  padding: 13px;
+  border: 1px solid #cce2d3;
+  border-radius: 13px;
+  background: #f5faf6;
+}
+.grammarSuggestion > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.grammarSuggestion strong {
+  color: #24563f;
+  font-size: 12px;
+}
+.grammarSuggestion > div button {
+  border: 0;
+  background: transparent;
+  color: #718078;
+  cursor: pointer;
+  font-size: 18px;
+}
+.grammarSuggestion p {
+  margin-top: 9px;
+  color: #30443a;
+  font-size: 14px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.grammarSuggestion footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+  margin-top: 12px;
+}
+.grammarSuggestion footer button {
+  min-height: 33px;
+  padding: 0 11px;
+  border: 1px solid #cddbd2;
+  border-radius: 999px;
+  background: #fff;
+  color: #526159;
+  cursor: pointer;
+  font: 700 11px inherit;
+}
+.grammarSuggestion footer button:last-child {
+  border-color: #1f6b4f;
+  background: #1f6b4f;
+  color: #fff;
+}
+.imageGenerator {
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid #d8d8ed;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #faf9ff, #f3f8f5);
+}
+.imageGenerator > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.imageGenerator strong {
+  color: #343257;
+  font-size: 13px;
+}
+.imageGenerator > div span,
+.imageGenerator small {
+  color: #85839a;
+  font-size: 10px;
+}
+.modal .imageGenerator textarea {
+  min-height: 86px;
+  margin-top: 12px;
+  padding: 11px 12px;
+  resize: vertical;
+  border: 1px solid #ddddeb;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.modal .imageGenerator textarea:focus {
+  border-color: #8a88ba;
+  box-shadow: 0 0 0 3px rgba(97, 94, 155, 0.1);
+}
+.imageGenerator footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+}
+.imageGenerator footer button {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 999px;
+  background: #4d4a86;
+  color: #fff;
+  cursor: pointer;
+  font: 750 11px inherit;
+}
+.imageGenerator footer button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.imageGenerator footer svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+}
+.aiLabel {
+  position: absolute;
+  bottom: 9px;
+  left: 9px;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: rgba(30, 27, 60, 0.82);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 750;
+  backdrop-filter: blur(5px);
+}
 .preview {
   position: relative;
   overflow: hidden;
@@ -367,5 +550,18 @@
   .modal textarea {
     min-height: 130px;
     font-size: 16px;
+  }
+  .aiTools {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .imageGenerator > div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .aiTools > span {
+    text-align: left;
   }
 }

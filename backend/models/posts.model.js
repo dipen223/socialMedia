@@ -39,6 +39,10 @@ const postSchema = new Schema({
         type: String,
         enum: ['', 'image', 'video'],
         default: ''
+    },
+    aiGenerated: {
+        type: Boolean,
+        default: false
     }
 
 }, {
