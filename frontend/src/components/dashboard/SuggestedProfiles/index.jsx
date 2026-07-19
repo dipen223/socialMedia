@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useDispatch, useSelector } from "react-redux";
 import { getAllProfiles } from "@/config/redux/action/profileAction";
 import { clientServer } from "@/config";
@@ -81,12 +82,14 @@ export default function SuggestedProfiles() {
 
             return (
               <article className={styles.card} key={profile._id}>
-                <span className={styles.avatar}>
+                <Link className={styles.avatar} href={`/${user.username}`} aria-label={`View ${user.name}'s profile`}>
                   {hasPicture ? <img src={user.profilePicture} alt="" /> : initials}
-                </span>
+                </Link>
                 <div className={styles.identity}>
-                  <h2>{user.name}</h2>
-                  <p>@{user.username}</p>
+                  <Link href={`/${user.username}`}>
+                    <h2>{user.name}</h2>
+                    <p>@{user.username}</p>
+                  </Link>
                 </div>
                 <p className={styles.bio}>{profile.bio || "New to Ripple."}</p>
 

@@ -5,7 +5,7 @@ import commentsController from "../controllers/comments.controller.js";
 const commentsRouter = express.Router();
 
 commentsRouter.post(
-    "/posts/:postId/comments",
+    "/posts/:postId/comment",
     auth,
     commentsController.createComment
 );

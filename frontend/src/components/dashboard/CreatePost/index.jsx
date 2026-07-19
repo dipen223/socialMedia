@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useDispatch, useSelector } from "react-redux";
 import { createNewPost, getAllPosts } from "@/config/redux/action/postAction";
 import { correctGrammar, deleteGeneratedImage, generatePostImage } from "@/config/redux/action/aiAction";
@@ -173,9 +174,9 @@ export default function CreatePost() {
     <>
       <section className={styles.composer} aria-label="Create a post">
         <div className={styles.startRow}>
-          <span className={styles.avatar}>
+          <Link className={styles.avatar} href={user?.username ? `/${user.username}` : "/dashboard/profile"} aria-label="View your profile">
             {hasPicture ? <img src={user.profilePicture} alt="" /> : initials}
-          </span>
+          </Link>
           <button className={styles.prompt} type="button" onClick={() => setIsOpen(true)}>
             Do you want to share your thoughts, {user?.name?.split(" ")[0] || "friend"}?
           </button>

@@ -1,12 +1,18 @@
 .card { position: relative; border: 1px solid #dfe8e2; border-radius: 16px; background: #fff; box-shadow: 0 10px 30px rgba(23, 37, 30, .05); }
 .header { position: relative; display: flex; align-items: center; gap: 11px; padding: 20px 20px 0; }
-.avatar { display: grid; overflow: hidden; width: 46px; height: 46px; flex: 0 0 46px; place-items: center; border: 2px solid #dcebe1; border-radius: 50%; background: #e9f3ed; color: #1f6b4f; font-size: 14px; font-weight: 800; }
+.avatar { display: grid; overflow: hidden; width: 46px; height: 46px; flex: 0 0 46px; place-items: center; border: 2px solid #dcebe1; border-radius: 50%; background: #e9f3ed; color: #1f6b4f; font-size: 14px; font-weight: 800; text-decoration: none; }
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
 .authorDetails { display: grid; min-width: 0; gap: 1px; }
+.authorDetails > a { display: grid; min-width: 0; color: inherit; text-decoration: none; }
+.authorDetails > a:hover strong { text-decoration: underline; }
 .authorDetails strong, .authorDetails span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .authorDetails strong { color: #17251e; font-size: 14px; }
 .authorDetails span { color: #607068; font-size: 12px; }
 .authorDetails small { margin-top: 2px; color: #89958e; font-size: 10px; }
+.connectButton { min-height: 34px; margin-left: auto; padding: 0 14px; border: 1px solid #1f6b4f; border-radius: 999px; background: #fff; color: #1f6b4f; cursor: pointer; font: 750 11px inherit; }
+.connectButton:hover:not(:disabled) { background: #e9f3ed; }
+.connectButton:disabled { border-color: #d6e2da; background: #f2f5f3; color: #718078; cursor: default; }
+.connectButton + .menuWrap { margin-left: 0; }
 .menuWrap { position: relative; margin-left: auto; align-self: flex-start; }
 .moreButton { display: flex; width: 36px; height: 36px; align-items: center; justify-content: center; gap: 3px; border: 0; border-radius: 50%; background: transparent; cursor: pointer; }
 .moreButton:hover, .moreButton[aria-expanded="true"] { background: #f0f5f1; }
@@ -36,10 +42,6 @@
 .media { display: block; width: 100%; max-height: 560px; object-fit: contain; }
 .aiMediaLabel { position: absolute; right: 10px; bottom: 10px; padding: 5px 8px; border-radius: 999px; background: rgba(30, 27, 60, .82); color: #fff; font-size: 10px; font-weight: 750; backdrop-filter: blur(5px); }
 .footer { border-top: 1px solid #e7ece9; }
-.stats { display: flex; min-height: 45px; align-items: center; justify-content: space-between; padding: 0 20px; color: #718078; font-size: 12px; }
-.likes { display: inline-flex; align-items: center; gap: 6px; color: #718078; font-size: 12px; font-weight: 650; }
-.likes > span { display: grid; width: 22px; height: 22px; place-items: center; border-radius: 50%; background: #e9f3ed; color: #1f6b4f; font-size: 11px; }
-.likes svg { width: 13px; height: 13px; }
 .actionBar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 6px 12px; border-top: 1px solid #edf1ee; }
 .actionBar button { display: inline-flex; min-height: 38px; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 9px; background: transparent; color: #607068; cursor: pointer; font: 700 12px inherit; }
 .actionBar button:hover { background: #edf5ef; color: #1f6b4f; }
@@ -50,9 +52,11 @@
 .commentPanel { padding: 14px 20px 18px; border-top: 1px solid #edf1ee; background: #fbfcfb; }
 .commentList { display: grid; gap: 12px; margin: 0 0 14px; padding: 0; list-style: none; }
 .commentList li { display: flex; align-items: flex-start; gap: 9px; }
-.commentAvatar { display: grid; width: 32px; height: 32px; flex: 0 0 32px; place-items: center; border-radius: 50%; background: #e9f3ed; color: #1f6b4f; font-size: 11px; font-weight: 800; }
+.commentAvatar { display: grid; width: 32px; height: 32px; flex: 0 0 32px; place-items: center; border-radius: 50%; background: #e9f3ed; color: #1f6b4f; font-size: 11px; font-weight: 800; text-decoration: none; }
 .commentList li > div { padding: 9px 11px; border-radius: 4px 13px 13px; background: #eef3ef; }
 .commentList strong { color: #26352d; font-size: 11px; }
+.commentAuthor { color: #26352d; font-size: 11px; font-weight: 700; text-decoration: none; }
+.commentAuthor:hover { text-decoration: underline; }
 .commentList p { margin-top: 3px; color: #35443c; font-size: 13px; line-height: 1.45; overflow-wrap: anywhere; }
 .commentList small { display: block; margin-top: 4px; color: #89958e; font-size: 9px; }
 .commentForm { display: flex; align-items: center; gap: 8px; }
@@ -61,4 +65,4 @@
 .commentForm button { min-height: 36px; padding: 0 11px; border: 0; border-radius: 999px; background: #1f6b4f; color: #fff; cursor: pointer; font: 750 11px inherit; }
 .commentForm button:disabled { opacity: .45; cursor: not-allowed; }
 .srOnly { position: absolute; overflow: hidden; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; clip: rect(0, 0, 0, 0); white-space: nowrap; }
-@media (max-width: 520px) { .card { border-radius: 12px; } .header { padding: 16px 16px 0; } .body { margin: 15px 16px 16px; } .stats { padding: 0 16px; } .commentPanel { padding: 13px 14px 16px; } .actionBar button { gap: 5px; font-size: 11px; } }
+@media (max-width: 520px) { .card { border-radius: 12px; } .header { padding: 16px 16px 0; } .body { margin: 15px 16px 16px; } .commentPanel { padding: 13px 14px 16px; } .actionBar button { gap: 5px; font-size: 11px; } }

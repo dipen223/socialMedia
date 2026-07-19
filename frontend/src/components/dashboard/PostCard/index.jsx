@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useRouter } from "next/router";
+import Link from "next/link";
 import { deletePost, likePost } from "@/config/redux/action/postAction";
+import { createNewComment, getCommentsByPost } from "@/config/redux/action/commentAction";
+import { clientServer } from "@/config";
 import styles from "./PostCard.module.css";
 
 const LikeIcon = () => (
@@ -64,20 +68,26 @@ const formatPostDate = (createdAt) => {
   }).format(new Date(createdAt));
 };
 
-export default function PostCard({ post }) {
+export default function PostCard({ post, detail = false }) {
   const dispatch = useDispatch();
+  const router = useRouter();
   const menuRef = useRef(null);
+  const commentsRequestedRef = useRef(false);
   const profile = useSelector((state) => state.auth.user);
   const { deletingPostId, likingPostId } = useSelector((state) => state.posts);
+  const comments = useSelector(
+    (state) => state.comments.commentsByPost[post._id] || []
+  );
+  const { creatingForPostId, fetchedPostIds, loadingForPostId } = useSelector((state) => state.comments);
   const currentUser = profile?.userId || profile;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [removedReason, setRemovedReason] = useState("");
   const [notice, setNotice] = useState("");
-  const [showComments, setShowComments] = useState(false);
+  const [showComments, setShowComments] = useState(detail);
   const [commentText, setCommentText] = useState("");
-  const [comments, setComments] = useState([]);
+  const [connectionStatus, setConnectionStatus] = useState("idle");
   const author = post.userId;
   const hasPicture = author?.profilePicture && author.profilePicture !== "default.jpg";
   const initials = author?.name?.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "S";
@@ -89,7 +99,10 @@ export default function PostCard({ post }) {
   const likeCount = post.likedBy?.length || 0;
   const isLiking = likingPostId === post._id;
   const isDeleting = deletingPostId === post._id;
+  const isCreatingComment = creatingForPostId === post._id;
+  const isLoadingComments = loadingForPostId === post._id;
   const currentUserInitial = currentUser?.name?.[0]?.toUpperCase() || "Y";
+  const authorHref = author?.username ? `/${author.username}` : null;
 
   useEffect(() => {
     const closeMenu = (event) => {
@@ -112,21 +125,56 @@ export default function PostCard({ post }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (detail && !fetchedPostIds[post._id] && !commentsRequestedRef.current) {
+      commentsRequestedRef.current = true;
+      dispatch(getCommentsByPost(post._id));
+    }
+  }, [detail, dispatch, fetchedPostIds, post._id]);
+
   const closeAfter = (callback) => {
     callback();
     setIsMenuOpen(false);
   };
 
-  const addComment = (event) => {
+  const addComment = async (event) => {
     event.preventDefault();
-    const text = commentText.trim();
-    if (!text) return;
+    const body = commentText.trim();
+    if (!body || isCreatingComment) return;
 
-    setComments((current) => [
-      ...current,
-      { id: `${Date.now()}-${current.length}`, text },
-    ]);
-    setCommentText("");
+    try {
+      await dispatch(createNewComment({ postId: post._id, body })).unwrap();
+      setCommentText("");
+    } catch (error) {
+      setNotice(error || "Could not post comment.");
+    }
+  };
+
+  const toggleComments = () => {
+    if (!detail) {
+      router.push(`/dashboard/posts/${post._id}`);
+      return;
+    }
+
+    const willOpen = !showComments;
+    setShowComments(willOpen);
+
+    if (willOpen && !fetchedPostIds[post._id] && !isLoadingComments) {
+      dispatch(getCommentsByPost(post._id));
+    }
+  };
+
+  const sendConnectionRequest = async () => {
+    if (connectionStatus !== "idle") return;
+    setConnectionStatus("sending");
+
+    try {
+      await clientServer.post("/connection-request", { connectionId: author._id });
+      setConnectionStatus("sent");
+    } catch (error) {
+      setConnectionStatus("idle");
+      setNotice(error.response?.data?.message || "Could not send connection request.");
+    }
   };
 
   const sharePost = async () => {
@@ -175,15 +223,31 @@ export default function PostCard({ post }) {
   return (
     <article className={styles.card} id={`post-${post._id}`}>
       <header className={styles.header}>
-        <span className={styles.avatar}>
-          {hasPicture ? <img src={author.profilePicture} alt="" /> : initials}
-        </span>
+        {authorHref ? (
+          <Link className={styles.avatar} href={authorHref} aria-label={`View ${author.name}'s profile`}>
+            {hasPicture ? <img src={author.profilePicture} alt="" /> : initials}
+          </Link>
+        ) : (
+          <span className={styles.avatar}>{hasPicture ? <img src={author.profilePicture} alt="" /> : initials}</span>
+        )}
 
         <div className={styles.authorDetails}>
-          <strong>{author?.name || "Ripple member"}</strong>
-          <span>@{author?.username || "member"}</span>
+          {authorHref ? (
+            <Link href={authorHref}>
+              <strong>{author?.name || "Ripple member"}</strong>
+              <span>@{author.username}</span>
+            </Link>
+          ) : (
+            <><strong>{author?.name || "Ripple member"}</strong><span>@member</span></>
+          )}
           <small>{formatPostDate(post.createdAt)} · Public</small>
         </div>
+
+        {detail && !isOwner && (
+          <button className={styles.connectButton} type="button" onClick={sendConnectionRequest} disabled={connectionStatus !== "idle"}>
+            {connectionStatus === "sending" ? "Sending..." : connectionStatus === "sent" ? "Request sent" : "Connect"}
+          </button>
+        )}
 
         <div className={styles.menuWrap} ref={menuRef}>
           <button
@@ -258,27 +322,25 @@ export default function PostCard({ post }) {
       )}
 
       <footer className={styles.footer}>
-        <div className={styles.stats}>
-          <span className={styles.likes}>
-            <span><LikeIcon /></span>
-            {likeCount} {likeCount === 1 ? "like" : "likes"}
-          </span>
-          {comments.length > 0 && <span>{comments.length} {comments.length === 1 ? "comment" : "comments"}</span>}
-        </div>
-
         <div className={styles.actionBar}>
           <button
             className={isLiked ? styles.activeAction : ""}
             type="button"
+            aria-label={`${isLiked ? "Unlike" : "Like"} post. ${likeCount} ${likeCount === 1 ? "like" : "likes"}`}
             aria-pressed={isLiked}
             aria-busy={isLiking}
             disabled={isLiking}
             onClick={handleLike}
           >
-            <LikeIcon /> {isLiked ? "Liked" : "Like"}
+            <LikeIcon /> <span>{likeCount}</span>
           </button>
-          <button type="button" aria-expanded={showComments} onClick={() => setShowComments((open) => !open)}>
-            <CommentIcon /> Comment
+          <button
+            type="button"
+            aria-label={`Open comments. ${comments.length} ${comments.length === 1 ? "comment" : "comments"}`}
+            aria-expanded={showComments}
+            onClick={toggleComments}
+          >
+            <CommentIcon /> <span>{comments.length}</span>
           </button>
           <button type="button" onClick={sharePost}>
             <ShareIcon /> Share
@@ -287,14 +349,25 @@ export default function PostCard({ post }) {
 
         {showComments && (
           <div className={styles.commentPanel}>
+            {isLoadingComments && <p role="status">Loading comments...</p>}
             {comments.length > 0 && (
               <ul className={styles.commentList}>
                 {comments.map((comment) => (
-                  <li key={comment.id}>
-                    <span className={styles.commentAvatar}>{currentUserInitial}</span>
+                  <li key={comment._id}>
+                    {comment.userId?.username ? (
+                      <Link className={styles.commentAvatar} href={`/${comment.userId.username}`} aria-label={`View ${comment.userId.name}'s profile`}>
+                        {comment.userId.name?.[0]?.toUpperCase() || "R"}
+                      </Link>
+                    ) : (
+                      <span className={styles.commentAvatar}>{currentUserInitial}</span>
+                    )}
                     <div>
-                      <strong>{currentUser?.name || "You"}</strong>
-                      <p>{comment.text}</p>
+                      {comment.userId?.username ? (
+                        <Link className={styles.commentAuthor} href={`/${comment.userId.username}`}>{comment.userId.name || "Ripple member"}</Link>
+                      ) : (
+                        <strong>{comment.userId?.name || "Ripple member"}</strong>
+                      )}
+                      <p>{comment.body}</p>
                       <small>Just now</small>
                     </div>
                   </li>
@@ -306,7 +379,9 @@ export default function PostCard({ post }) {
               <span className={styles.commentAvatar}>{currentUserInitial}</span>
               <label className={styles.srOnly} htmlFor={`comment-${post._id}`}>Write a comment</label>
               <input id={`comment-${post._id}`} value={commentText} onChange={(event) => setCommentText(event.target.value)} placeholder="Write a comment..." maxLength={500} />
-              <button type="submit" disabled={!commentText.trim()}>Post</button>
+              <button type="submit" disabled={!commentText.trim() || isCreatingComment}>
+                {isCreatingComment ? "Posting..." : "Post"}
+              </button>
             </form>
           </div>
         )}

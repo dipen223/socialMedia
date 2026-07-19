@@ -1,10 +1,15 @@
 import Comment from "../models/comments.model.js";
 import Post from "../models/posts.model.js";
 
-const commentPost = async (req, res) => {
+const createComment = async (req, res) => {
     const userId = req.user.id;
     const { postId } = req.params;
-    const { commentBody } = req.body;
+    const body = typeof req.body.body === "string" ? req.body.body.trim() : "";
+
+    if (!body) {
+        return res.status(400).json({ message: "Write something before posting a comment." });
+    }
+
     try {
 
         const post = await Post.findById(postId);
@@ -15,11 +20,12 @@ const commentPost = async (req, res) => {
         const comment = new Comment({
             userId,
             postId,
-            body: commentBody
+            body
         });
 
         await comment.save();
-        return res.status(200).json({ message: "Comment Added!" });
+        await comment.populate("userId", "name username profilePicture");
+        return res.status(201).json({ message: "Comment added!", comment });
 
 
     } catch (err) {
@@ -27,7 +33,7 @@ const commentPost = async (req, res) => {
         return res.status(500).json({ message: "Server error!" });
     }
 }
-const get_comments_by_post = async (req, res) => {
+const getCommentsByPost = async (req, res) => {
     const { postId } = req.params;
 
 
@@ -71,13 +77,8 @@ const deleteComment = async (req, res) => {
                 message: "You cannot delete this comment"
             });
         }
-        return res.status(200).json({
-            message: "Comment deleted!"
-        });
         await comment.deleteOne();
-
-
-
+        return res.status(200).json({ message: "Comment deleted!" });
     } catch (err) {
         console.error("Error deleting the comment!", err.message);
         return res.status(500).json({ message: "Server error!" });
@@ -85,4 +86,4 @@ const deleteComment = async (req, res) => {
 }
 
 
-export default { commentPost, get_comments_by_post,deleteComment };
+export default { createComment, getCommentsByPost, deleteComment };

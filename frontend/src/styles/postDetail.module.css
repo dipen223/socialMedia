@@ -1,0 +1,6 @@
+.detail { display: grid; gap: 14px; }
+.back { width: fit-content; color: #1f6b4f; font-size: 13px; font-weight: 750; text-decoration: none; }
+.back:hover { text-decoration: underline; }
+.status { padding: 42px 24px; border: 1px solid #dfe8e2; border-radius: 16px; background: #fff; color: #607068; text-align: center; }
+.status h1 { margin-bottom: 7px; color: #17251e; font-size: 20px; }
+.status p { font-size: 13px; }

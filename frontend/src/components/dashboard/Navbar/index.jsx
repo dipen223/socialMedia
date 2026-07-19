@@ -118,11 +118,7 @@ export default function Navbar() {
               onClick={() => setIsMenuOpen((open) => !open)}
             >
               <span className={styles.avatar}>
-                {hasProfilePicture ? (
-                  <img src={user.profilePicture} alt="" />
-                ) : (
-                  initials
-                )}
+                {hasProfilePicture ? <img src={user.profilePicture} alt="" /> : initials}
               </span>
               <span className={styles.userText}>
                 <strong>{user?.name || "Your profile"}</strong>
