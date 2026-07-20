@@ -68,6 +68,24 @@ const formatPostDate = (createdAt) => {
   }).format(new Date(createdAt));
 };
 
+const formatCommentDate = (createdAt) => {
+  if (!createdAt) return "Recently";
+
+  const createdDate = new Date(createdAt);
+  if (Number.isNaN(createdDate.getTime())) return "Recently";
+
+  const elapsedMinutes = Math.floor((Date.now() - createdDate.getTime()) / 60000);
+  if (elapsedMinutes < 1) return "Just now";
+  if (elapsedMinutes < 60) return `${elapsedMinutes}m ago`;
+  if (elapsedMinutes < 1440) return `${Math.floor(elapsedMinutes / 60)}h ago`;
+
+  return new Intl.DateTimeFormat("en", {
+    month: "short",
+    day: "numeric",
+    year: createdDate.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
+  }).format(createdDate);
+};
+
 export default function PostCard({ post, detail = false }) {
   const dispatch = useDispatch();
   const router = useRouter();
@@ -368,7 +386,7 @@ export default function PostCard({ post, detail = false }) {
                         <strong>{comment.userId?.name || "Ripple member"}</strong>
                       )}
                       <p>{comment.body}</p>
-                      <small>Just now</small>
+                      <small>{formatCommentDate(comment.createdAt)}</small>
                     </div>
                   </li>
                 ))}

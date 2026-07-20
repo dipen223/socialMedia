@@ -52,7 +52,9 @@ const commentSlice = createSlice({
                     state.commentsByPost[postId] = [];
                 }
 
-                state.commentsByPost[postId].push(comment);
+                // The API returns comments newest-first, so keep locally-created
+                // comments in the same order without requiring another request.
+                state.commentsByPost[postId].unshift(comment);
                 state.creatingForPostId = null
             })
             .addCase(createNewComment.rejected, (state, action) => {
