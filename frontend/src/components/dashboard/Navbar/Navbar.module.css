@@ -58,7 +58,118 @@
   border: 1px solid #dce6df;
   border-radius: 12px;
   background: #f1f5f1;
-  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background 160ms ease;
+  position: relative;
+}
+
+.searchDropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  z-index: 200;
+  width: 100%;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 8px;
+  border: 1px solid #dce5df;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 18px 45px rgba(23, 37, 30, 0.16);
+}
+
+.searchResult{
+  display:flex;
+  align-items: center;
+  gap:11px;
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  color:#17251e;
+  text-decoration: none;
+}
+
+.searchResult:hover,
+.searchResult:focus-visible {
+  outline: none;
+  background: #e9f3ed;
+}
+
+.searchAvatar {
+  display: grid;
+  overflow: hidden;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  place-items: center;
+  border: 2px solid #d4e5da;
+  border-radius: 50%;
+  background: #e9f3ed;
+  color: #1f6b4f;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.searchAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.searchIdentity {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.searchIdentity strong,
+.searchIdentity small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.searchIdentity strong {
+  font-size: 14px;
+}
+
+.searchIdentity small {
+  color: #718078;
+  font-size: 12px;
+}
+
+.searchStatus {
+  margin: 0;
+  padding: 12px;
+  color: #68776f;
+  font-size: 13px;
+  text-align: center;
+}
+
+.searchError {
+  color: #a13a32;
+}
+.searchIdentity strong {
+  font-size: 14px;
+}
+
+.searchIdentity small {
+  color: #718078;
+  font-size: 12px;
+}
+
+.searchStatus {
+  margin: 0;
+  padding: 12px;
+  color: #68776f;
+  font-size: 13px;
+  text-align: center;
+}
+
+.searchError {
+  color: #a13a32;
 }
 
 .search:focus-within {
@@ -125,7 +236,9 @@
   font-size: 14px;
   font-weight: 650;
   text-decoration: none;
-  transition: color 150ms ease, background 150ms ease;
+  transition:
+    color 150ms ease,
+    background 150ms ease;
 }
 
 .navLink:hover {

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { logout } from "@/config/redux/reducer/authReducer";
 import styles from "./Navbar.module.css";
+import { clientServer } from "@/config";
 
 const SearchIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -27,9 +28,16 @@ export default function Navbar() {
   const router = useRouter();
   const dispatch = useDispatch();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
+
   const menuRef = useRef(null);
   const profile = useSelector((state) => state.auth.user);
   const user = profile?.userId || profile;
+
+
   const initials = user?.name
     ?.split(" ")
     .map((part) => part[0])
@@ -59,6 +67,50 @@ export default function Navbar() {
     };
   }, []);
 
+  //people search
+
+  useEffect(() => {
+    const query = searchQuery.trim();
+
+    if (query.length < 2) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const timeoutId = setTimeout(async () => {
+      setIsSearching(true);
+      setSearchError("");
+
+      try {
+        const response = await clientServer.get("/search/people", {
+          params: { q: query },
+          signal: controller.signal,
+        });
+
+        setSearchResults(Array.isArray(response.data.people) ? response.data.people : []);
+      } catch (err) {
+        if (err.code !== "ERR_CANCELED") {
+          setSearchError(
+            err.response?.data?.message ||
+            "Could not search for people."
+          );
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setIsSearching(false);
+        }
+      }
+    }, 300);
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [searchQuery]);
+
+
+
   const handleLogout = () => {
     setIsMenuOpen(false);
     dispatch(logout());
@@ -67,6 +119,17 @@ export default function Navbar() {
 
   const handleSearch = (event) => {
     event.preventDefault();
+  };
+
+  const handleSearchQueryChange = (event) => {
+    const value = event.target.value;
+    setSearchQuery(value);
+
+    if (value.trim().length < 2) {
+      setSearchResults([]);
+      setSearchError("");
+      setIsSearching(false);
+    }
   };
 
   return (
@@ -86,7 +149,62 @@ export default function Navbar() {
             id="dashboard-search"
             type="search"
             placeholder="Search people, posts..."
+            value={searchQuery}
+            onChange={handleSearchQueryChange}
           />
+          {searchQuery.trim().length >= 2 && (
+            <div className={styles.searchDropdown}>
+              {isSearching && <p className={styles.searchStatus}>Searching...</p>}
+              {!isSearching && searchResults.map((person) => {
+                const hasPicture =
+                  person.profilePicture &&
+                  person.profilePicture !== "default.jpg";
+                const personInitials = person.name
+                  ?.split(" ")
+                  .map((part) => part[0])
+                  .slice(0, 2)
+                  .join("")
+                  .toUpperCase() || "R";
+
+                return (
+                  <Link
+                    key={person._id}
+                    className={styles.searchResult}
+                    href={`/${person.username}`}
+                    onClick={() => {
+                      setSearchQuery("");
+                      setSearchResults([]);
+                    }}
+                  >
+                    <span className={styles.searchAvatar}>
+                      {hasPicture ? (
+                        <img src={person.profilePicture} alt="" />
+                      ) : (
+                        personInitials
+                      )}
+                    </span>
+                    <span className={styles.searchIdentity}>
+                      <strong>{person.name}</strong>
+                      <small>@{person.username}</small>
+                    </span>
+                  </Link>
+                );
+              })}
+
+              {!isSearching && !searchError && searchResults.length === 0 && (
+                <p className={styles.searchStatus}>No people found.</p>
+              )}
+
+              {searchError && <p
+                className={`${styles.searchStatus} ${styles.searchError}`}
+                role="alert"
+              >
+                {searchError}
+              </p>}
+
+
+            </div>
+          )}
           <kbd>/</kbd>
         </form>
 

@@ -398,36 +398,87 @@ const getReceivedConnectionRequests = async (req, res) => {
     }
 };
 
-const acceptConnectionRequest = async(req,res) =>{
+const acceptConnectionRequest = async (req, res) => {
     const userId = req.user.id;
-    const {requsetId,action_type} = req.body;
+    const { requsetId, action_type } = req.body;
 
 
-    try{
+    try {
         const user = await User.findById(userId);
-        if(!user){
+        if (!user) {
             return res.status(404).json({ message: "User not found!" });
         }
-        const connection = await Connection.findOne({_id:requestId});
-         if(!connection){
+        const connection = await Connection.findOne({ _id: requestId });
+        if (!connection) {
             return res.status(404).json({ message: "Connection not found!" });
         }
 
-        if(action_type === "accept"){
+        if (action_type === "accept") {
             connection.status_accepted = true;
-        }else{
+        } else {
             connection.status_accepted = false;
         }
 
         await connection.save();
 
-        return res.status(200).json({message:"Request Updated!"});
+        return res.status(200).json({ message: "Request Updated!" });
 
-    }catch (err) {
+    } catch (err) {
         console.error("Error accepting connectino request!", err.message);
         return res.status(500).json({ message: "Server error!" });
     }
 }
 
+const escapeRegExp = (value) => {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+};
 
-export default { signup, login, uploadProfile, updateUserProfile, getUserProfile, updateProfileData, getAllUserProfile, downloadProfile, connectionRequest, getMySentConnectionRequests,getReceivedConnectionRequests ,acceptConnectionRequest};
+
+const searchPeople = async (req, res) => {
+    const query = typeof req.query.q == "string" ? req.query.q.trim() : "";
+    if (query.length < 2) {
+        return res.status(200).json({ people: [] });
+    }
+
+    if (query.length > 50) {
+        return res.status(400).json({ message: "Search cannot exceed 50 characters." });
+    }
+
+    try {
+        const safeQuery = escapeRegExp(query);
+
+        const people = await User.find({
+            $or:[
+                {
+                    name:{
+                        $regex:safeQuery,
+                        $options:"i",
+                    },
+                },
+                {
+                    username:{
+                        $regex:safeQuery,
+                        $options:"i",
+                    }
+
+                },
+            ],
+        }).select("name username profilePicture").
+        limit(8)
+        .lean();
+
+
+        return res.status(200).json({people});
+
+    }
+    catch (error) {
+        console.error("People search failed:", error.message);
+
+        return res.status(500).json({
+            message: "Could not search for people.",
+        });
+    }
+
+}
+
+    export default { signup, login, uploadProfile, updateUserProfile, getUserProfile, updateProfileData, getAllUserProfile, downloadProfile, connectionRequest, getMySentConnectionRequests, getReceivedConnectionRequests, acceptConnectionRequest,searchPeople };
