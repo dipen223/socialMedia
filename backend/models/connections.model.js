@@ -1,20 +1,36 @@
 import mongoose,{Schema} from "mongoose";
 
 const connectionSchema = new Schema({
-    userId:{
+    requesterId:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"User",
+        required:true,
     },
-    connectionId:{
+    recipientId:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"User",
+        required:true,
     },
-    status_accepted:{
-        type:Boolean,
-        default:null,
+    status:{
+        type:String,
+        enum:["pending","accepted"],
+        default:"pending",
     }
+},
+{
+    timestamps:true,
 });
 
+connectionSchema.index(
+  {
+    requesterId: 1,
+    recipientId: 1,
+  },
+  {
+    unique: true,
+  }
+);
 
-const Connection = new mongoose.model("Conneciton",connectionSchema);
+
+const Connection = mongoose.model("Conneciton",connectionSchema);
 export default Connection;

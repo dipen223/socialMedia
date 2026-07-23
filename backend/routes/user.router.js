@@ -17,10 +17,6 @@ userRouter.get("/profile",auth,userController.getUserProfile);
 userRouter.post("/updateProfileDetails",auth,userController.updateProfileData);
 userRouter.get("/getAllUsers",auth,userController.getAllUserProfile);
 userRouter.get("/user/download_profile",userController.downloadProfile);
-userRouter.post("/connection-request",auth,userController.connectionRequest);
-userRouter.get("/sent-connection-requests",auth,userController.getMySentConnectionRequests);
-userRouter.get("/received-connection-requests",auth,userController.getReceivedConnectionRequests);
-userRouter.post("/accept-connection-request",auth,userController.acceptConnectionRequest);
 userRouter.get("/search/people",auth,userController.searchPeople);
 
 
