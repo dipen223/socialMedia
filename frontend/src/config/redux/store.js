@@ -4,6 +4,7 @@ import postReducer from "@/config/redux/reducer/postReducer";
 import profileReducer from "@/config/redux/reducer/profileReducer";
 import aiReducer from "@/config/redux/reducer/aiReducer";
 import commentReducer from "@/config/redux/reducer/commentReducer";
+import connectionReducer from "@/config/redux/reducer/connectionReducer";
 
 const store = configureStore({
   reducer: {
@@ -12,6 +13,7 @@ const store = configureStore({
     profiles: profileReducer,
     ai: aiReducer,
     comments:commentReducer,
+    connections:connectionReducer,
   },
 });
 
