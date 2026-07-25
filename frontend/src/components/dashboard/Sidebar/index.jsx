@@ -22,7 +22,10 @@ const Sidebar = () => {
       <nav aria-label="Dashboard navigation" className={styles.sidebarNav}>
         {sidebarOptions.map((option) => {
           const isActive = option.profile
-            ? router.pathname === "/[username]" || router.pathname === "/dashboard/profile"
+            ? router.pathname === "/dashboard/profile" ||
+              (router.pathname === "/[username]" &&
+                router.query.username?.toLowerCase() ===
+                  user?.username?.toLowerCase())
             : router.pathname === option.href;
 
           return (
