@@ -4,7 +4,7 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import { deletePost, likePost } from "@/config/redux/action/postAction";
 import { createNewComment, getCommentsByPost } from "@/config/redux/action/commentAction";
-import { clientServer } from "@/config";
+import ConnectButton from "@/components/dashboard/ConnectionButton";
 import styles from "./PostCard.module.css";
 
 const LikeIcon = () => (
@@ -105,7 +105,6 @@ export default function PostCard({ post, detail = false }) {
   const [notice, setNotice] = useState("");
   const [showComments, setShowComments] = useState(detail);
   const [commentText, setCommentText] = useState("");
-  const [connectionStatus, setConnectionStatus] = useState("idle");
   const author = post.userId;
   const hasPicture = author?.profilePicture && author.profilePicture !== "default.jpg";
   const initials = author?.name?.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "S";
@@ -182,19 +181,6 @@ export default function PostCard({ post, detail = false }) {
     }
   };
 
-  const sendConnectionRequest = async () => {
-    if (connectionStatus !== "idle") return;
-    setConnectionStatus("sending");
-
-    try {
-      await clientServer.post("/connection-request", { connectionId: author._id });
-      setConnectionStatus("sent");
-    } catch (error) {
-      setConnectionStatus("idle");
-      setNotice(error.response?.data?.message || "Could not send connection request.");
-    }
-  };
-
   const sharePost = async () => {
     const url = `${window.location.origin}${window.location.pathname}#post-${post._id}`;
 
@@ -262,9 +248,10 @@ export default function PostCard({ post, detail = false }) {
         </div>
 
         {detail && !isOwner && (
-          <button className={styles.connectButton} type="button" onClick={sendConnectionRequest} disabled={connectionStatus !== "idle"}>
-            {connectionStatus === "sending" ? "Sending..." : connectionStatus === "sent" ? "Request sent" : "Connect"}
-          </button>
+          <ConnectButton
+            userId={author?._id}
+            className={styles.connectButton}
+          />
         )}
 
         <div className={styles.menuWrap} ref={menuRef}>

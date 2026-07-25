@@ -28,7 +28,7 @@ export const getSentRequests = createAsyncThunk("connections/getSentRequests",
   async(_,thunkAPI) =>{
 
     try{
-         const response = await clientServer.get("connection-requests/sent");
+         const response = await clientServer.get("/connection-requests/sent");
 
     return response.data;
 

@@ -7,6 +7,7 @@ import {
   deleteConnectionRequest,
   getMyConnections,
 } from "../../action/connectionAction";
+import { logout } from "../../reducer/authReducer";
 
 const initialState = {
   sentRequests: [],
@@ -20,6 +21,10 @@ const initialState = {
   isLoadingSent: false,
   isLoadingReceived: false,
   isLoadingConnections: false,
+
+  hasFetchedSent: false,
+  hasFetchedReceived: false,
+  hasFetchedConnections: false,
 
   error: "",
 };
@@ -80,9 +85,10 @@ const connectionSlice = createSlice({
         getSentRequests.fulfilled,
         (state, action) => {
           state.isLoadingSent = false;
+          state.hasFetchedSent = true;
 
           state.sentRequests =
-            action.payload.requests;
+            action.payload.requests || [];
         }
       )
 
@@ -90,6 +96,7 @@ const connectionSlice = createSlice({
         getSentRequests.rejected,
         (state, action) => {
           state.isLoadingSent = false;
+          state.hasFetchedSent = true;
 
           state.error =
             action.payload ||
@@ -110,9 +117,10 @@ const connectionSlice = createSlice({
         getReceivedRequests.fulfilled,
         (state, action) => {
           state.isLoadingReceived = false;
+          state.hasFetchedReceived = true;
 
           state.receivedRequests =
-            action.payload.requests;
+            action.payload.requests || [];
         }
       )
 
@@ -120,6 +128,7 @@ const connectionSlice = createSlice({
         getReceivedRequests.rejected,
         (state, action) => {
           state.isLoadingReceived = false;
+          state.hasFetchedReceived = true;
 
           state.error =
             action.payload ||
@@ -215,9 +224,10 @@ const connectionSlice = createSlice({
         getMyConnections.fulfilled,
         (state, action) => {
           state.isLoadingConnections = false;
+          state.hasFetchedConnections = true;
 
           state.connections =
-            action.payload.connections;
+            action.payload.connections || [];
         }
       )
 
@@ -225,12 +235,14 @@ const connectionSlice = createSlice({
         getMyConnections.rejected,
         (state, action) => {
           state.isLoadingConnections = false;
+          state.hasFetchedConnections = true;
 
           state.error =
             action.payload ||
             "Failed to retrieve connections.";
         }
-      );
+      )
+      .addCase(logout, () => initialState);
 
 
   },

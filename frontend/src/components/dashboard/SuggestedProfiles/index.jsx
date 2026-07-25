@@ -1,17 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useDispatch, useSelector } from "react-redux";
 import { getAllProfiles } from "@/config/redux/action/profileAction";
-import { clientServer } from "@/config";
+import ConnectButton from "@/components/dashboard/ConnectionButton";
 import styles from "./SuggestedProfiles.module.css";
 
 export default function SuggestedProfiles() {
   const dispatch = useDispatch();
   const currentProfile = useSelector((state) => state.auth.user);
+  const connectionError = useSelector((state) => state.connections.error);
+
   const { profiles, isLoading, isError, message, hasFetched } = useSelector(
     (state) => state.profiles
   );
-  const [requestState, setRequestState] = useState({});
 
   useEffect(() => {
     if (!hasFetched && !isLoading && !isError) {
@@ -27,41 +28,24 @@ export default function SuggestedProfiles() {
     );
   }, [currentProfile, profiles]);
 
-  const sendConnectionRequest = async (connectionId) => {
-    setRequestState((current) => ({
-      ...current,
-      [connectionId]: { status: "sending", message: "" },
-    }));
-
-    try {
-      await clientServer.post("/connection-request", { connectionId });
-      setRequestState((current) => ({
-        ...current,
-        [connectionId]: { status: "sent", message: "Request sent" },
-      }));
-    } catch (error) {
-      const errorMessage =
-        error.response?.data?.message ||
-        error.response?.data?.messgae ||
-        error.message ||
-        "Could not send request";
-
-      setRequestState((current) => ({
-        ...current,
-        [connectionId]: { status: "error", message: errorMessage },
-      }));
-    }
-  };
-
   return (
     <section className={styles.discover} aria-labelledby="discover-title">
-  
+
       {isLoading && <div className={styles.status} role="status">Loading people...</div>}
 
       {isError && (
         <div className={`${styles.status} ${styles.error}`} role="alert">
           <p>{message}</p>
           <button type="button" onClick={() => dispatch(getAllProfiles())}>Try again</button>
+        </div>
+      )}
+
+      {connectionError && (
+        <div
+          className={`${styles.status} ${styles.error}`}
+          role="alert"
+        >
+          <p>{connectionError}</p>
         </div>
       )}
 
@@ -76,7 +60,6 @@ export default function SuggestedProfiles() {
         <div className={styles.grid}>
           {discoverProfiles.map((profile) => {
             const user = profile.userId;
-            const state = requestState[user._id] || {};
             const hasPicture = user.profilePicture && user.profilePicture !== "default.jpg";
             const initials = user.name?.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "R";
 
@@ -98,16 +81,10 @@ export default function SuggestedProfiles() {
                     {profile.interests.slice(0, 3).map((interest) => <li key={interest}>{interest}</li>)}
                   </ul>
                 )}
-                <button
+                <ConnectButton
+                  userId={user._id}
                   className={styles.connectButton}
-                  type="button"
-                  disabled={state.status === "sending" || state.status === "sent"}
-                  onClick={() => sendConnectionRequest(user._id)}
-                >
-                  {state.status === "sending" ? "Sending..." : state.status === "sent" ? "Request sent" : "Connect"}
-                </button>
-
-                {state.status === "error" && <p className={styles.cardError} role="alert">{state.message}</p>}
+                />
               </article>
             );
           })}

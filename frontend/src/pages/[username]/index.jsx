@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { useRouter } from "next/router";
 import { useDispatch, useSelector } from "react-redux";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import ConnectButton from "@/components/dashboard/ConnectionButton";
 import PostCard from "@/components/dashboard/PostCard";
 import { getAllProfiles } from "@/config/redux/action/profileAction";
 import { getAllPosts } from "@/config/redux/action/postAction";
@@ -66,7 +67,11 @@ export default function UsernameProfilePage() {
                   <h1>{user.name}</h1>
                   <p>@{user.username}</p>
                 </div>
-                <button type="button">{isOwnProfile ? "Edit profile" : "Connect"}</button>
+                {isOwnProfile ? (
+                  <button type="button">Edit profile</button>
+                ) : (
+                  <ConnectButton userId={user._id} />
+                )}
               </div>
               <p className={styles.bio}>{profile.bio || "No bio added yet."}</p>
               {profile.currentPost && <p className={styles.currentPost}>{profile.currentPost}</p>}
