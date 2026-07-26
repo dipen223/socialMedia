@@ -8,7 +8,7 @@ export default function useDashboardAuth() {
   const router = useRouter();
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
-  const [checkingAuth, setCheckingAuth] = useState(!user);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
     const verifyUser = async () => {

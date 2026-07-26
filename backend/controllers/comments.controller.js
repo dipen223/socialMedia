@@ -1,5 +1,6 @@
 import Comment from "../models/comments.model.js";
 import Post from "../models/posts.model.js";
+import Notification from "../models/notification.model.js";
 
 const createComment = async (req, res) => {
     const userId = req.user.id;
@@ -25,6 +26,17 @@ const createComment = async (req, res) => {
 
         await comment.save();
         await comment.populate("userId", "name username profilePicture");
+
+        if (post.userId.toString() !== userId.toString()) {
+            await Notification.create({
+                recipientId: post.userId,
+                actorId: userId,
+                type: "post_commented",
+                postId: post._id,
+                commentId: comment._id
+            });
+        }
+
         return res.status(201).json({ message: "Comment added!", comment });
 
 
@@ -77,6 +89,7 @@ const deleteComment = async (req, res) => {
                 message: "You cannot delete this comment"
             });
         }
+        await Notification.deleteMany({ commentId: comment._id });
         await comment.deleteOne();
         return res.status(200).json({ message: "Comment deleted!" });
     } catch (err) {

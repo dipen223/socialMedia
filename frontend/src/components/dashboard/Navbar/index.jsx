@@ -5,6 +5,16 @@ import { useDispatch, useSelector } from "react-redux";
 import { logout } from "@/config/redux/reducer/authReducer";
 import styles from "./Navbar.module.css";
 import { clientServer } from "@/config";
+import {
+  getNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+} from "@/config/redux/action/notificationAction";
+import {
+  acceptConnectionRequest,
+  deleteConnectionRequest,
+  getMyConnections,
+} from "@/config/redux/action/connectionAction";
 
 const SearchIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -24,17 +34,45 @@ const NetworkIcon = () => (
   </svg>
 );
 
+const BellIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4" />
+  </svg>
+);
+
+const formatNotificationTime = (date) => {
+  const elapsed = Date.now() - new Date(date).getTime();
+  const minutes = Math.max(1, Math.floor(elapsed / 60000));
+
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
+};
+
 export default function Navbar() {
   const router = useRouter();
   const dispatch = useDispatch();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
 
   const menuRef = useRef(null);
+  const notificationRef = useRef(null);
   const profile = useSelector((state) => state.auth.user);
+  const {
+    notifications,
+    unreadCount,
+    isLoading: notificationsLoading,
+    isUpdating: notificationsUpdating,
+    error: notificationsError,
+  } = useSelector((state) => state.notifications);
+  const { acceptingRequestId, deletingRequestId } = useSelector(
+    (state) => state.connections
+  );
   const user = profile?.userId || profile;
 
 
@@ -51,10 +89,16 @@ export default function Navbar() {
     const closeMenu = (event) => {
       if (event.key === "Escape") {
         setIsMenuOpen(false);
+        setIsNotificationsOpen(false);
       }
 
-      if (event.type === "mousedown" && !menuRef.current?.contains(event.target)) {
-        setIsMenuOpen(false);
+      if (event.type === "mousedown") {
+        if (!menuRef.current?.contains(event.target)) {
+          setIsMenuOpen(false);
+        }
+        if (!notificationRef.current?.contains(event.target)) {
+          setIsNotificationsOpen(false);
+        }
       }
     };
 
@@ -129,6 +173,45 @@ export default function Navbar() {
       setSearchResults([]);
       setSearchError("");
       setIsSearching(false);
+    }
+  };
+
+  const openNotification = (notification) => {
+    if (!notification.readAt) {
+      dispatch(markNotificationRead(notification._id));
+    }
+
+    setIsNotificationsOpen(false);
+    if (
+      ["post_liked", "post_commented"].includes(notification.type) &&
+      notification.postId
+    ) {
+      router.push(`/dashboard/posts/${notification.postId}`);
+      return;
+    }
+
+    const username = notification.actorId?.username;
+    router.push(username ? `/${username}` : "/dashboard/connections");
+  };
+
+  const handleRequestAction = async (notification, action) => {
+    if (!notification.connectionId) return;
+
+    try {
+      if (action === "accept") {
+        await dispatch(
+          acceptConnectionRequest(notification.connectionId)
+        ).unwrap();
+        await dispatch(getMyConnections());
+      } else {
+        await dispatch(
+          deleteConnectionRequest(notification.connectionId)
+        ).unwrap();
+      }
+
+      await dispatch(getNotifications());
+    } catch {
+      // Redux exposes the request error in the connection state.
     }
   };
 
@@ -224,6 +307,172 @@ export default function Navbar() {
             <NetworkIcon />
             <span>Network</span>
           </Link>
+
+          <div className={styles.notificationMenu} ref={notificationRef}>
+            <button
+              className={styles.notificationTrigger}
+              type="button"
+              aria-label={
+                unreadCount
+                  ? `Notifications, ${unreadCount} unread`
+                  : "Notifications"
+              }
+              aria-haspopup="dialog"
+              aria-expanded={isNotificationsOpen}
+              onClick={() => {
+                if (!isNotificationsOpen) {
+                  dispatch(getNotifications());
+                }
+                setIsNotificationsOpen((open) => !open);
+                setIsMenuOpen(false);
+              }}
+            >
+              <BellIcon />
+              {unreadCount > 0 && (
+                <span className={styles.notificationBadge}>
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {isNotificationsOpen && (
+              <div
+                className={styles.notificationDropdown}
+                role="dialog"
+                aria-label="Notifications"
+              >
+                <header className={styles.notificationHeader}>
+                  <div>
+                    <strong>Notifications</strong>
+                    <span>{unreadCount} unread</span>
+                  </div>
+                  {unreadCount > 0 && (
+                    <button
+                      type="button"
+                      disabled={notificationsUpdating}
+                      onClick={() => dispatch(markAllNotificationsRead())}
+                    >
+                      {notificationsUpdating ? "Updating..." : "Mark all read"}
+                    </button>
+                  )}
+                </header>
+
+                <div className={styles.notificationList}>
+                  {notificationsLoading && notifications.length === 0 && (
+                    <p className={styles.notificationStatus}>
+                      Loading notifications...
+                    </p>
+                  )}
+
+                  {!notificationsLoading && notifications.length === 0 && (
+                    <div className={styles.notificationEmpty}>
+                      <BellIcon />
+                      <strong>You&apos;re all caught up</strong>
+                      <span>New activity will appear here.</span>
+                    </div>
+                  )}
+
+                  {notifications.map((notification) => {
+                    const actor = notification.actorId;
+                    const hasPicture =
+                      actor?.profilePicture &&
+                      actor.profilePicture !== "default.jpg";
+                    const actorInitials =
+                      actor?.name
+                        ?.split(" ")
+                        .map((part) => part[0])
+                        .slice(0, 2)
+                        .join("")
+                        .toUpperCase() || "R";
+                    const isRequest =
+                      notification.type === "connection_request";
+                    const notificationMessage = {
+                      connection_request: "sent you a connection request.",
+                      connection_accepted: "accepted your connection request.",
+                      post_liked: "liked your post.",
+                      post_commented: "commented on your post.",
+                    }[notification.type] || "interacted with you.";
+                    const isAccepting =
+                      acceptingRequestId === notification.connectionId;
+                    const isDeleting =
+                      deletingRequestId === notification.connectionId;
+
+                    return (
+                      <article
+                        className={`${styles.notificationItem} ${
+                          !notification.readAt ? styles.unread : ""
+                        }`}
+                        key={notification._id}
+                      >
+                        <button
+                          className={styles.notificationContent}
+                          type="button"
+                          onClick={() => openNotification(notification)}
+                        >
+                          <span className={styles.notificationAvatar}>
+                            {hasPicture ? (
+                              <img src={actor.profilePicture} alt="" />
+                            ) : (
+                              actorInitials
+                            )}
+                          </span>
+                          <span className={styles.notificationCopy}>
+                            <span>
+                              <strong>{actor?.name || "Someone"}</strong>{" "}
+                              {notificationMessage}
+                            </span>
+                            <small>
+                              {formatNotificationTime(notification.createdAt)}
+                            </small>
+                          </span>
+                        </button>
+
+                        {isRequest && (
+                          <div className={styles.notificationActions}>
+                            <button
+                              type="button"
+                              disabled={isAccepting || isDeleting}
+                              onClick={() =>
+                                handleRequestAction(notification, "accept")
+                              }
+                            >
+                              {isAccepting ? "Confirming..." : "Confirm"}
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isAccepting || isDeleting}
+                              onClick={() =>
+                                handleRequestAction(notification, "delete")
+                              }
+                            >
+                              {isDeleting ? "Deleting..." : "Delete"}
+                            </button>
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
+
+                  {notificationsError && (
+                    <p
+                      className={`${styles.notificationStatus} ${styles.notificationError}`}
+                      role="alert"
+                    >
+                      {notificationsError}
+                    </p>
+                  )}
+                </div>
+
+                <Link
+                  className={styles.viewConnections}
+                  href="/dashboard/connections"
+                  onClick={() => setIsNotificationsOpen(false)}
+                >
+                  View connections
+                </Link>
+              </div>
+            )}
+          </div>
 
           <span className={styles.divider} aria-hidden="true" />
 

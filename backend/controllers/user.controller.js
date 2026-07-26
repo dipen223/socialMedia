@@ -80,7 +80,7 @@ const signup = async (req, res) => {
 
         await profile.save();
         const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET_KEY, {
-            expiresIn: "1h",
+            expiresIn: "5d",
         });
 
 
@@ -118,7 +118,11 @@ const login = async (req, res) => {
             return res.status(401).json({ message: "Invalid Credentials!" });
         }
 
-        const token = jwt.sign({ id: existingUser._id }, process.env.JWT_SECRET_KEY, { expiresIn: "1h" });
+        const token = jwt.sign(
+            { id: existingUser._id },
+            process.env.JWT_SECRET_KEY,
+            { expiresIn: "5d" }
+        );
         res.json({
             message: "Login Successsfull",
             token,

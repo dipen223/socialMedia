@@ -2,6 +2,7 @@ import User from "../models/user.model.js";
 import Post from "../models/posts.model.js";
 import cloudinary from "../config/cloudinary.js";
 import Comment from "../models/comments.model.js";
+import Notification from "../models/notification.model.js";
 import { randomUUID } from "crypto";
 
 const MEDIA_LIMITS = {
@@ -137,6 +138,10 @@ const deletePost = async (req, res) => {
         }
 
         await post.deleteOne();
+        await Promise.all([
+            Comment.deleteMany({ postId }),
+            Notification.deleteMany({ postId })
+        ]);
         if (post.mediaPublicId) {
             cloudinary.uploader.destroy(post.mediaPublicId, {
                 resource_type: post.mediaResourceType || "image"
@@ -177,6 +182,37 @@ const likePost = async (req, res) => {
         }
 
         await post.save();
+
+        const isOwnPost = post.userId.toString() === userId.toString();
+        if (!isOwnPost) {
+            if (alreadyLiked) {
+                await Notification.deleteOne({
+                    recipientId: post.userId,
+                    actorId: userId,
+                    type: "post_liked",
+                    postId: post._id
+                });
+            } else {
+                await Notification.updateOne(
+                    {
+                        recipientId: post.userId,
+                        actorId: userId,
+                        type: "post_liked",
+                        postId: post._id
+                    },
+                    {
+                        $set: { readAt: null },
+                        $setOnInsert: {
+                            recipientId: post.userId,
+                            actorId: userId,
+                            type: "post_liked",
+                            postId: post._id
+                        }
+                    },
+                    { upsert: true }
+                );
+            }
+        }
 
         return res.status(200).json({
             message: alreadyLiked

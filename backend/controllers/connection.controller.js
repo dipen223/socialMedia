@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Connection from "../models/connections.model.js";
 import User from "../models/user.model.js";
+import Notification from "../models/notification.model.js";
 
 const sendConnectionRequest = async (req, res) => {
     const requesterId = req.user.id;
@@ -43,6 +44,13 @@ const sendConnectionRequest = async (req, res) => {
             requesterId,
             recipientId,
             status: "pending"
+        });
+
+        await Notification.create({
+            recipientId,
+            actorId: requesterId,
+            type: "connection_request",
+            connectionId: request._id
         });
 
         return res.status(201).json({
@@ -132,6 +140,19 @@ const acceptConnectionRequest = async (req, res) => {
             return res.status(404).json({ message: "Pending connection request not found." });
         }
 
+        await Notification.deleteMany({
+            recipientId,
+            type: "connection_request",
+            connectionId: connection._id
+        });
+
+        await Notification.create({
+            recipientId: connection.requesterId._id,
+            actorId: recipientId,
+            type: "connection_accepted",
+            connectionId: connection._id
+        });
+
         return res.status(200).json({
             message: "Connection request accepted.",
             connection
@@ -160,6 +181,12 @@ const deleteConnectionRequest = async (req, res) => {
         if (!connection) {
             return res.status(404).json({ message: "Pending connection request not found." });
         }
+
+        await Notification.deleteMany({
+            recipientId,
+            type: "connection_request",
+            connectionId: connection._id
+        });
 
         return res.status(200).json({
             message: "Connection request deleted.",

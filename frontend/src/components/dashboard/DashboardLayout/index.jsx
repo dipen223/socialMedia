@@ -10,6 +10,7 @@ import {
   getReceivedRequests,
   getMyConnections,
 } from "@/config/redux/action/connectionAction";
+import { getNotifications } from "@/config/redux/action/notificationAction";
 
 export default function DashboardLayout({ children }) {
   const checkingAuth = useDashboardAuth();
@@ -23,6 +24,8 @@ export default function DashboardLayout({ children }) {
     isLoadingReceived,
     isLoadingConnections,
   } = useSelector((state) => state.connections);
+  const { hasFetched: hasFetchedNotifications, isLoading: isLoadingNotifications } =
+    useSelector((state) => state.notifications);
 
   useEffect(() => {
     if (checkingAuth) return;
@@ -38,6 +41,10 @@ export default function DashboardLayout({ children }) {
     if (!hasFetchedConnections && !isLoadingConnections) {
       dispatch(getMyConnections());
     }
+
+    if (!hasFetchedNotifications && !isLoadingNotifications) {
+      dispatch(getNotifications());
+    }
   }, [
     checkingAuth,
     dispatch,
@@ -45,9 +52,21 @@ export default function DashboardLayout({ children }) {
     hasFetchedReceived,
     hasFetchedSent,
     isLoadingConnections,
+    hasFetchedNotifications,
+    isLoadingNotifications,
     isLoadingReceived,
     isLoadingSent,
   ]);
+
+  useEffect(() => {
+    if (checkingAuth) return undefined;
+
+    const intervalId = window.setInterval(() => {
+      dispatch(getNotifications());
+    }, 60000);
+
+    return () => window.clearInterval(intervalId);
+  }, [checkingAuth, dispatch]);
 
   if (checkingAuth) {
     return <div className={styles.checking}>Checking authentication...</div>;
