@@ -4,6 +4,7 @@ import useDashboardAuth from "@/hooks/useDashboardAuth";
 import styles from "./DashboardLayout.module.css";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import {getSocket}from "@/config/socket";
 
 import {
   getSentRequests,
@@ -14,6 +15,45 @@ import { getNotifications } from "@/config/redux/action/notificationAction";
 
 export default function DashboardLayout({ children }) {
   const checkingAuth = useDashboardAuth();
+  useEffect(() => {
+  if (checkingAuth) {
+    return undefined;
+  }
+
+  const token = window.localStorage.getItem("token");
+  const socket = getSocket();
+
+  if (!token || !socket) {
+    return undefined;
+  }
+
+  const handleConnect = () => {
+    console.log("Socket connected:", socket.id);
+  
+  };
+
+  const handleConnectError = (error) => {
+    console.error(
+      "Socket connection failed:",
+      error.message
+    );
+  };
+
+  socket.auth = {
+    token,
+  };
+
+  socket.on("connect", handleConnect);
+  socket.on("connect_error", handleConnectError);
+
+  socket.connect();
+
+  return () => {
+    socket.off("connect", handleConnect);
+    socket.off("connect_error", handleConnectError);
+    socket.disconnect();
+  };
+}, [checkingAuth]);
 
   const dispatch = useDispatch();
   const {
