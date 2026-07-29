@@ -3,6 +3,7 @@ import Post from "../models/posts.model.js";
 import cloudinary from "../config/cloudinary.js";
 import Comment from "../models/comments.model.js";
 import Notification from "../models/notification.model.js";
+import DiscussionRoom from "../models/discussionRoom.model.js";
 import { randomUUID } from "crypto";
 
 const MEDIA_LIMITS = {
@@ -109,10 +110,25 @@ const createPost = async (req, res) => {
 const getAllPosts = async (req, res) => {
 
     try {
-        const posts = await Post.find({ active: true }).populate("userId", "name username email profilePicture");
+        const posts = await Post.find({ active: true })
+            .sort({ createdAt: -1 })
+            .populate("userId", "name username email profilePicture")
+            .lean();
+        const liveRooms = await DiscussionRoom.find({
+            postId: { $in: posts.map((post) => post._id) },
+            status: "live",
+        })
+            .select("postId title participantCount hostId")
+            .lean();
+        const roomsByPost = new Map(
+            liveRooms.map((room) => [room.postId.toString(), room])
+        );
+        const postsWithRooms = posts.map((post) => ({
+            ...post,
+            liveDiscussion: roomsByPost.get(post._id.toString()) || null,
+        }));
 
-
-        return res.status(200).json({ count: posts.length, posts });
+        return res.status(200).json({ count: posts.length, posts: postsWithRooms });
 
     } catch (err) {
         console.error("Error getting posts!", err.message);
@@ -140,7 +156,8 @@ const deletePost = async (req, res) => {
         await post.deleteOne();
         await Promise.all([
             Comment.deleteMany({ postId }),
-            Notification.deleteMany({ postId })
+            Notification.deleteMany({ postId }),
+            DiscussionRoom.deleteMany({ postId })
         ]);
         if (post.mediaPublicId) {
             cloudinary.uploader.destroy(post.mediaPublicId, {

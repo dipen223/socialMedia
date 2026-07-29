@@ -1,5 +1,6 @@
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 const OPENAI_IMAGES_URL = "https://api.openai.com/v1/images/generations";
+const OPENAI_TRANSCRIPTIONS_URL = "https://api.openai.com/v1/audio/transcriptions";
 
 const requireApiKey = () => {
     if (!process.env.OPENAI_API_KEY) {
@@ -95,4 +96,102 @@ export const generateImage = async (prompt) => {
     }
 
     return imageBase64;
+};
+
+export const transcribeCallAudio = async ({
+    buffer,
+    mimeType = "audio/webm",
+}) => {
+    requireApiKey();
+    const form = new FormData();
+    form.append(
+        "file",
+        new Blob([buffer], { type: mimeType }),
+        "ripple-call.webm"
+    );
+    form.append(
+        "model",
+        process.env.OPENAI_TRANSCRIPTION_MODEL ||
+            "gpt-4o-transcribe-diarize"
+    );
+    form.append("response_format", "diarized_json");
+    form.append("chunking_strategy", "auto");
+
+    const response = await fetch(OPENAI_TRANSCRIPTIONS_URL, {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: form,
+        signal: AbortSignal.timeout(180000),
+    });
+    const data = await readApiResponse(
+        response,
+        "The call transcription service is unavailable."
+    );
+    const transcript = (data.segments || [])
+        .map((segment) => `${segment.speaker || "Speaker"}: ${segment.text}`)
+        .join("\n")
+        .trim();
+
+    if (!transcript) {
+        throw new Error("No speech was detected in this call.");
+    }
+    return transcript;
+};
+
+export const summarizeCallTranscript = async (transcript) => {
+    requireApiKey();
+    const response = await fetch(OPENAI_RESPONSES_URL, {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            model:
+                process.env.OPENAI_CALL_SUMMARY_MODEL ||
+                process.env.OPENAI_GRAMMAR_MODEL ||
+                "gpt-5-nano",
+            instructions: [
+                "Summarize only information explicitly present in the call transcript.",
+                "Do not invent names, decisions, promises, dates, or action items.",
+                "Return valid JSON only with this exact shape:",
+                '{"overview":"one concise paragraph","keyPoints":["point"],"actionItems":["action"]}.',
+                "Use empty arrays when there are no supported key points or action items.",
+            ].join(" "),
+            input: transcript.slice(0, 120000),
+            reasoning: { effort: "minimal" },
+            max_output_tokens: 1800,
+        }),
+        signal: AbortSignal.timeout(60000),
+    });
+    const data = await readApiResponse(
+        response,
+        "The call summary service is unavailable."
+    );
+    const output = readOutputText(data)
+        ?.replace(/^```json\s*/i, "")
+        .replace(/```$/i, "")
+        .trim();
+    const summary = JSON.parse(output);
+
+    return {
+        overview:
+            typeof summary.overview === "string"
+                ? summary.overview.slice(0, 4000)
+                : "",
+        keyPoints: Array.isArray(summary.keyPoints)
+            ? summary.keyPoints
+                .filter((item) => typeof item === "string")
+                .slice(0, 12)
+                .map((item) => item.slice(0, 1000))
+            : [],
+        actionItems: Array.isArray(summary.actionItems)
+            ? summary.actionItems
+                .filter((item) => typeof item === "string")
+                .slice(0, 12)
+                .map((item) => item.slice(0, 1000))
+            : [],
+    };
 };

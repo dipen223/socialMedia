@@ -24,13 +24,19 @@
   place-items: center;
   color: #607068;
 }
+.wideLayout {
+  grid-template-columns: 260px minmax(0, 1fr);
+}
 
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: 220px minmax(0, 1fr);
     width: min(100% - 32px, 850px);
     gap: 16px;
-  }
+  }.wideLayout {
+  grid-template-columns: 220px minmax(0, 1fr);
+}
+
 }
 
 @media (max-width: 700px) {

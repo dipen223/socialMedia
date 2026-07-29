@@ -4,7 +4,13 @@ import useDashboardAuth from "@/hooks/useDashboardAuth";
 import styles from "./DashboardLayout.module.css";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import {getSocket}from "@/config/socket";
+import { getSocket } from "@/config/socket";
+import {
+  receiveMessage,
+  receiveDeliveryReceipt,
+  receiveReadReceipt,
+  updateMessage,
+} from "@/config/redux/reducer/chatReducer";
 
 import {
   getSentRequests,
@@ -13,49 +19,80 @@ import {
 } from "@/config/redux/action/connectionAction";
 import { getNotifications } from "@/config/redux/action/notificationAction";
 
-export default function DashboardLayout({ children }) {
+export default function DashboardLayout({ children, wide = false,}) {
   const checkingAuth = useDashboardAuth();
-  useEffect(() => {
-  if (checkingAuth) {
-    return undefined;
-  }
-
-  const token = window.localStorage.getItem("token");
-  const socket = getSocket();
-
-  if (!token || !socket) {
-    return undefined;
-  }
-
-  const handleConnect = () => {
-    console.log("Socket connected:", socket.id);
-  
-  };
-
-  const handleConnectError = (error) => {
-    console.error(
-      "Socket connection failed:",
-      error.message
-    );
-  };
-
-  socket.auth = {
-    token,
-  };
-
-  socket.on("connect", handleConnect);
-  socket.on("connect_error", handleConnectError);
-
-  socket.connect();
-
-  return () => {
-    socket.off("connect", handleConnect);
-    socket.off("connect_error", handleConnectError);
-    socket.disconnect();
-  };
-}, [checkingAuth]);
-
   const dispatch = useDispatch();
+  const profile = useSelector((state) => state.auth.user);
+  const currentUser = profile?.userId || profile;
+  const currentUserId = currentUser?._id;
+  useEffect(() => {
+    if (checkingAuth) {
+      return undefined;
+    }
+
+    const token = window.localStorage.getItem("token");
+    const socket = getSocket();
+
+    if (!token || !socket) {
+      return undefined;
+    }
+
+    const handleConnect = () => {
+      console.log("Socket connected:", socket.id);
+
+    };
+
+    const handleConnectError = (error) => {
+      console.error(
+        "Socket connection failed:",
+        error.message
+      );
+    };
+    const handleNewMessage = ({ message, conversation }) => {
+      if (message) {
+        dispatch(receiveMessage({ message, conversation }));
+        const senderId = message.senderId?._id || message.senderId;
+        if (senderId && senderId !== currentUserId) {
+          socket.emit("message:delivered", { messageId: message._id });
+          dispatch(getNotifications());
+        }
+      }
+    };
+    const handleReadReceipt = (receipt) => {
+      dispatch(receiveReadReceipt(receipt));
+    };
+    const handleDeliveryReceipt = (receipt) => {
+      dispatch(receiveDeliveryReceipt(receipt));
+    };
+    const handleUpdatedMessage = ({ message }) => {
+      if (message) dispatch(updateMessage(message));
+    };
+
+    socket.auth = {
+      token,
+    };
+
+    socket.on("connect", handleConnect);
+    socket.on("connect_error", handleConnectError);
+    socket.on("message:new", handleNewMessage);
+    socket.on("message:read", handleReadReceipt);
+    socket.on("message:delivered", handleDeliveryReceipt);
+    socket.on("message:updated", handleUpdatedMessage);
+
+    socket.connect();
+
+    return () => {
+      socket.off("connect", handleConnect);
+      socket.off("connect_error", handleConnectError);
+      socket.off("message:new",handleNewMessage);
+      socket.off("message:read", handleReadReceipt);
+      socket.off("message:delivered", handleDeliveryReceipt);
+      socket.off("message:updated", handleUpdatedMessage);
+      socket.disconnect();
+    };
+  }, [checkingAuth, currentUserId, dispatch]);
+
+
   const {
     hasFetchedSent,
     hasFetchedReceived,
@@ -115,7 +152,7 @@ export default function DashboardLayout({ children }) {
   return (
     <>
       <Navbar />
-      <main className={styles.layout}>
+      <main className={`${styles.layout} ${wide ? styles.wideLayout : ""}`}>
         <Sidebar />
         <div className={styles.centerColumn}>{children}</div>
       </main>

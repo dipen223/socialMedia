@@ -183,6 +183,15 @@ export default function Navbar() {
 
     setIsNotificationsOpen(false);
     if (
+      ["new_message", "missed_call"].includes(notification.type) &&
+      notification.conversationId
+    ) {
+      router.push(
+        `/dashboard/messages?conversation=${notification.conversationId}`
+      );
+      return;
+    }
+    if (
       ["post_liked", "post_commented"].includes(notification.type) &&
       notification.postId
     ) {
@@ -391,6 +400,8 @@ export default function Navbar() {
                       connection_accepted: "accepted your connection request.",
                       post_liked: "liked your post.",
                       post_commented: "commented on your post.",
+                      new_message: "sent you a message.",
+                      missed_call: "tried to call you.",
                     }[notification.type] || "interacted with you.";
                     const isAccepting =
                       acceptingRequestId === notification.connectionId;

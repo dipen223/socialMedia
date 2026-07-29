@@ -7,6 +7,8 @@ import connectionRouter from "./connection.router.js";
 import notificationRouter from "./notification.router.js";
 import conversationRouter from "./conversation.router.js";
 import messageRouter from "./message.router.js";
+import callRouter from "./call.router.js";
+import discussionRoomRouter from "./discussionRoom.router.js";
 
 
 
@@ -20,6 +22,8 @@ router.use(connectionRouter);
 router.use(notificationRouter);
 router.use(conversationRouter);
 router.use(messageRouter);
+router.use(callRouter);
+router.use(discussionRoomRouter);
 
 
 router.get("/",(req,res)=> {res.send("Welcome to Ripple!")});

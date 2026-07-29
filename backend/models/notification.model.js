@@ -19,6 +19,8 @@ const notificationSchema = new Schema({
             "connection_accepted",
             "post_liked",
             "post_commented",
+            "new_message",
+            "missed_call",
         ],
         required: true,
     },
@@ -35,6 +37,16 @@ const notificationSchema = new Schema({
     commentId: {
         type: Schema.Types.ObjectId,
         ref: "Comment",
+        default: null,
+    },
+    conversationId: {
+        type: Schema.Types.ObjectId,
+        ref: "Conversation",
+        default: null,
+    },
+    messageId: {
+        type: Schema.Types.ObjectId,
+        ref: "Message",
         default: null,
     },
     readAt: {

@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Conversation from "../models/conversations.model.js";
 import User from "../models/user.model.js";
+import Connection from "../models/connections.model.js";
 
 
 const createDirectConversation = async (req, res) => {
@@ -29,6 +30,26 @@ const createDirectConversation = async (req, res) => {
                 message: "Recipient does not exist.",
             });
         }
+        const usersAreConnected = await Connection.exists({
+            status: "accepted",
+            $or: [
+                {
+                    requesterId: currentUserId,
+                    recipientId,
+                },
+                {
+                    requesterId: recipientId,
+                    recipientId: currentUserId,
+                },
+            ],
+        });
+
+        if (!usersAreConnected) {
+            return res.status(403).json({
+                message: "You can only message your connections.",
+            });
+        }
+
         const directKey = [currentUserId, recipientId]
             .map(String)
             .sort()
@@ -72,7 +93,8 @@ const getMyConversations = async (req, res) => {
             .populate("members", "name username profilePicture")
             .populate({
                 path: "lastMessageId",
-                select: "body type senderId createdAt",
+                select:
+                    "body type call attachments senderId readBy deliveredTo editedAt deletedAt createdAt",
                 populate: {
                     path: "senderId",
                     select: "name username profilePicture",

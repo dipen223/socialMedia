@@ -6,6 +6,7 @@ import aiReducer from "@/config/redux/reducer/aiReducer";
 import commentReducer from "@/config/redux/reducer/commentReducer";
 import connectionReducer from "@/config/redux/reducer/connectionReducer";
 import notificationReducer from "@/config/redux/reducer/notificationReducer";
+import chatReducer from "@/config/redux/reducer/chatReducer";
 
 const store = configureStore({
   reducer: {
@@ -16,6 +17,7 @@ const store = configureStore({
     comments:commentReducer,
     connections:connectionReducer,
     notifications: notificationReducer,
+    chat:chatReducer,
   },
 });
 

@@ -7,6 +7,10 @@ import router from "../backend/routes/main.router.js";
 import {createServer} from "node:http";
 import {Server} from "socket.io";
 import jwt from "jsonwebtoken";
+import registerMessageHandlers from "./sockets/message.socket.js";
+import registerPresenceHandlers from "./sockets/presence.socket.js";
+import registerCallHandlers from "./sockets/call.socket.js";
+import registerDiscussionHandlers from "./sockets/discussion.socket.js";
 
 dotenv.config();
 
@@ -32,6 +36,7 @@ const io = new Server(httpServer,{
     credentials:true,
   }
 });
+app.set("io", io);
 
 app.use(cors(corsOptions));
 app.use(express.json());
@@ -68,7 +73,24 @@ io.on("connection",(socket) =>{
 
   socket.join(userRoom);
 
-  console.log("Authenticated socket connected:",socket.id,userRoom);
+  registerMessageHandlers({
+    io,
+    socket,
+  });
+  registerPresenceHandlers({
+    io,
+    socket,
+  });
+  registerCallHandlers({
+    io,
+    socket,
+  });
+  registerDiscussionHandlers({
+    io,
+    socket,
+  });
+console.log("Authenticated socket connected:",socket.id,userRoom);
+
 
   socket.on("disconnect", (reason) =>{
     console.log("Socket disconnected: ",socket.id,reason);
@@ -89,5 +111,3 @@ mongoose.connect(MONGO_URI)
   .catch((err) => {
     console.log("❌ DB connection error:", err);
   });
-
-  

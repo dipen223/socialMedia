@@ -8,6 +8,11 @@
 .identity h1 { color: #17251e; font-size: 25px; }
 .identity p { margin-top: 3px; color: #718078; font-size: 13px; }
 .identity button { flex: 0 0 auto; min-height: 40px; padding: 0 17px; border: 0; border-radius: 999px; background: #1f6b4f; color: #fff; cursor: pointer; font-weight: 750; }
+.profileActions { display: flex; align-items: center; gap: 8px; }
+.identity .messageButton { border: 1px solid #bfd5c8; background: #e9f3ed; color: #1f6b4f; }
+.identity .messageButton:hover { background: #dcece2; }
+.identity button:disabled { cursor: not-allowed; opacity: .65; }
+.actionError { margin-top: 9px; color: #963b34; font-size: 12px; text-align: right; }
 .bio { margin-top: 18px; color: #35443c; font-size: 14px; line-height: 1.65; }
 .currentPost { margin-top: 8px; color: #607068; font-size: 12px; }
 .interests { display: flex; flex-wrap: wrap; gap: 7px; margin: 17px 0 0; padding: 0; list-style: none; }
@@ -19,4 +24,4 @@
 .noPosts, .status { padding: 42px 24px; color: #607068; text-align: center; }
 .status h1 { margin-bottom: 7px; color: #17251e; }
 .error { border-color: #efcfcb; background: #fff8f7; color: #963b34; }
-@media (max-width: 520px) { .profileCard, .status { border-radius: 12px; } .cover { height: 95px; } .profileBody { padding: 0 17px 20px; } .avatar { width: 82px; height: 82px; margin-top: -41px; } .identity { align-items: flex-end; } .identity h1 { font-size: 21px; } .identity button { min-height: 36px; padding: 0 13px; font-size: 12px; } }
+@media (max-width: 520px) { .profileCard, .status { border-radius: 12px; } .cover { height: 95px; } .profileBody { padding: 0 17px 20px; } .avatar { width: 82px; height: 82px; margin-top: -41px; } .identity { align-items: flex-end; } .identity h1 { font-size: 21px; } .identity button { min-height: 36px; padding: 0 13px; font-size: 12px; } .profileActions { align-items: stretch; flex-direction: column; } }
