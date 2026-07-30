@@ -10,6 +10,7 @@ const storage = multer.memoryStorage();
 const upload = multer({storage});
 
 userRouter.post("/update_profile_picture",auth,upload.single("profilePicture"),userController.uploadProfile);
+userRouter.post("/update_cover_photo",auth,upload.single("coverPhoto"),userController.uploadCoverPhoto);
 userRouter.post("/signup",userController.signup);
 userRouter.post("/login",userController.login);
 userRouter.post("/updateAccountInfo",auth,userController.updateUserProfile);

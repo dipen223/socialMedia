@@ -82,6 +82,13 @@ CLOUDINARY_API_KEY=...
 CLOUDINARY_API_SECRET=...
 ```
 
+Create `frontend/.env.local` with the matching public provider configuration:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_PRIVACY_EMAIL=privacy@your_domain.com
+```
+
 Run backend
 
 ```bash

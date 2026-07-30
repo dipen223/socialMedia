@@ -504,7 +504,7 @@ export default function DiscussionRoomPage() {
             <div className={styles.speakerGrid}>
               {speakers.map((person) => (
                 <article className={styles.speaker} key={person.userId}>
-                  <div className={styles.largeAvatar}>
+                  <div className={`${styles.largeAvatar} ${!person.muted ? styles.unmutedHalo : ""}`}>
                     {person.profilePicture && person.profilePicture !== "default.jpg"
                       ? <img src={person.profilePicture} alt="" />
                       : initials(person.name)}

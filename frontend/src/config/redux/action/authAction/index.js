@@ -36,7 +36,6 @@ export const registerUser = createAsyncThunk(
   },
 );
 
-
 export const getUserProfile = createAsyncThunk(
   "auth/getUserProfile",
   async (_, thunkAPI) => {

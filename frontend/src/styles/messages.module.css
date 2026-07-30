@@ -316,6 +316,14 @@
   border-radius: 12px;
   background: #f3f7f4;
   color: #1f6b4f;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.callActions button:hover:not(:disabled) {
+  background: #e9f3ed;
+  border-color: #bfd5c8;
+  transform: translateY(-1px);
 }
 
 .callActions button:disabled {

@@ -95,6 +95,8 @@ const formatCommentDate = (createdAt) => {
   }).format(createdDate);
 };
 
+const EMPTY_COMMENTS = [];
+
 export default function PostCard({ post, detail = false }) {
   const dispatch = useDispatch();
   const router = useRouter();
@@ -102,18 +104,50 @@ export default function PostCard({ post, detail = false }) {
   const commentsRequestedRef = useRef(false);
   const profile = useSelector((state) => state.auth.user);
   const { deletingPostId, likingPostId } = useSelector((state) => state.posts);
-  const comments = useSelector(
-    (state) => state.comments.commentsByPost[post._id] || []
+  const fetchedComments = useSelector(
+    (state) => state.comments.commentsByPost[post._id]
   );
   const { creatingForPostId, fetchedPostIds, loadingForPostId } = useSelector((state) => state.comments);
+  const comments = fetchedComments || EMPTY_COMMENTS;
+  const commentCount = (fetchedPostIds[post._id] || fetchedComments)
+    ? comments.length
+    : (post.commentCount || 0);
   const currentUser = profile?.userId || profile;
+  const initialSaved = Array.isArray(post.savedBy)
+    ? post.savedBy.some((id) => (typeof id === "object" ? id._id?.toString() : id?.toString()) === currentUser?._id?.toString())
+    : false;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
+  const [isSaved, setIsSaved] = useState(initialSaved);
+  const [isSaving, setIsSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [removedReason, setRemovedReason] = useState("");
   const [notice, setNotice] = useState("");
   const [showComments, setShowComments] = useState(detail);
   const [commentText, setCommentText] = useState("");
+
+  useEffect(() => {
+    if (Array.isArray(post.savedBy)) {
+      setIsSaved(post.savedBy.some((id) => (typeof id === "object" ? id._id?.toString() : id?.toString()) === currentUser?._id?.toString()));
+    }
+  }, [post.savedBy, currentUser]);
+
+  const handleBookmark = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    const prevSaved = isSaved;
+    setIsSaved(!prevSaved);
+
+    try {
+      const res = await clientServer.patch(`/post/${post._id}/bookmark`);
+      if (res.data?.saved !== undefined) {
+        setIsSaved(res.data.saved);
+      }
+    } catch {
+      setIsSaved(prevSaved);
+    } finally {
+      setIsSaving(false);
+    }
+  };
   const [liveDiscussion, setLiveDiscussion] = useState(post.liveDiscussion || null);
   const [startingDiscussion, setStartingDiscussion] = useState(false);
   const author = post.userId;
@@ -337,7 +371,7 @@ export default function PostCard({ post, detail = false }) {
                 </div>
               ) : (
                 <>
-                  <button role="menuitem" type="button" onClick={() => closeAfter(() => setIsSaved((saved) => !saved))}>
+                  <button role="menuitem" type="button" onClick={() => closeAfter(handleBookmark)}>
                     <span className={styles.menuIcon}><SaveIcon /></span>
                     <strong>{isSaved ? "Unsave" : "Save"}</strong>
                   </button>
@@ -422,11 +456,11 @@ export default function PostCard({ post, detail = false }) {
           </button>
           <button
             type="button"
-            aria-label={`Open comments. ${comments.length} ${comments.length === 1 ? "comment" : "comments"}`}
+            aria-label={`Open comments. ${commentCount} ${commentCount === 1 ? "comment" : "comments"}`}
             aria-expanded={showComments}
             onClick={toggleComments}
           >
-            <CommentIcon /> <span>{comments.length}</span>
+            <CommentIcon /> <span>{commentCount}</span>
           </button>
           <button type="button" onClick={sharePost}>
             <ShareIcon /> Share

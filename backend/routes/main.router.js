@@ -9,8 +9,7 @@ import conversationRouter from "./conversation.router.js";
 import messageRouter from "./message.router.js";
 import callRouter from "./call.router.js";
 import discussionRoomRouter from "./discussionRoom.router.js";
-
-
+import storyRouter from "./story.router.js";
 
 const router = express.Router();
 
@@ -24,6 +23,7 @@ router.use(conversationRouter);
 router.use(messageRouter);
 router.use(callRouter);
 router.use(discussionRoomRouter);
+router.use("/api/stories", storyRouter);
 
 
 router.get("/",(req,res)=> {res.send("Welcome to Ripple!")});

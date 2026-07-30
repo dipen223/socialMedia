@@ -1,0 +1,176 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding-bottom: 50px;
+}
+
+/* Hero Section */
+.heroHeader {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+  padding: 36px;
+  border-radius: 24px;
+  background: radial-gradient(circle at 90% 10%, rgba(52, 211, 153, 0.3) 0%, transparent 50%),
+              linear-gradient(135deg, #0f271d 0%, #081610 100%);
+  border: 1px solid rgba(52, 211, 153, 0.25);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  color: #fff;
+  overflow: hidden;
+}
+
+.heroHeader h1 {
+  margin: 0;
+  font-size: clamp(28px, 4vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #ffffff;
+}
+
+.heroHeader p {
+  margin: 0;
+  font-size: 14px;
+  color: #9ab0a4;
+  max-width: 520px;
+}
+
+/* Trending Hashtags Tray */
+.trendingSection {
+  background: #ffffff;
+  border-radius: 22px;
+  border: 1px solid rgba(220, 231, 224, 0.8);
+  padding: 20px 24px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sectionTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.hashtagGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.tagPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: #f8faf9;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tagPill:hover {
+  background: rgba(52, 211, 153, 0.15);
+  border-color: #10b981;
+  color: #059669;
+  transform: translateY(-2px);
+}
+
+.tagPillActive {
+  background: #10b981 !important;
+  border-color: #10b981 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+}
+
+.tagCount {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.08);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.tagPillActive .tagCount {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+/* Filter Tabs */
+.tabsBar {
+  display: flex;
+  gap: 10px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 8px;
+}
+
+.tabBtn {
+  padding: 10px 20px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tabBtn:hover {
+  color: #0f172a;
+  background: #f1f5f9;
+}
+
+.tabBtnActive {
+  background: #10b981 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+}
+
+/* Main Content Area */
+.contentGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.statusNotice {
+  padding: 40px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.clearFilterBtn {
+  margin-left: auto;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #ef4444;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 650px) {
+  .heroHeader {
+    padding: 24px;
+  }
+  .hashtagGrid {
+    gap: 8px;
+  }
+}

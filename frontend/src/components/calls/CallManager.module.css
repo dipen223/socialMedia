@@ -243,6 +243,7 @@
   gap: 6px;
   background: transparent;
   font-size: 9px;
+  cursor: pointer;
 }
 
 .controlButton svg {
@@ -256,6 +257,7 @@
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 1.7;
+  transition: all 0.2s ease;
 }
 
 .controlButton:hover svg {
@@ -297,6 +299,8 @@
   padding: 0 17px;
   border-radius: 999px;
   font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .accept {

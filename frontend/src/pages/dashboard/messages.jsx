@@ -492,7 +492,6 @@ export default function MessagesPage() {
         <aside className={styles.conversationRail}>
           <header className={styles.railHeader}>
             <div>
-              <span>Ripple chat</span>
               <h1>Messages</h1>
             </div>
             <button

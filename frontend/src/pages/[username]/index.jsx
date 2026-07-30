@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import { useDispatch, useSelector } from "react-redux";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
@@ -8,6 +9,7 @@ import { getAllProfiles } from "@/config/redux/action/profileAction";
 import { getAllPosts } from "@/config/redux/action/postAction";
 import { selectRelationshipWithUser } from "@/config/redux/selector/connectionSelector";
 import { clientServer } from "@/config";
+import MediaLightbox from "@/components/common/MediaLightbox";
 import styles from "@/styles/profilePage.module.css";
 
 export default function UsernameProfilePage() {
@@ -19,6 +21,7 @@ export default function UsernameProfilePage() {
   const { posts, isLoading: postsLoading, isError: postsError, message: postsMessage, postFetched } = useSelector((state) => state.posts);
   const [isOpeningMessage, setIsOpeningMessage] = useState(false);
   const [messageError, setMessageError] = useState("");
+  const [activeLightbox, setActiveLightbox] = useState(null);
 
   useEffect(() => {
     if (!hasFetched && !profilesLoading && !profilesError) dispatch(getAllProfiles());
@@ -87,9 +90,17 @@ export default function UsernameProfilePage() {
       {profile && (
         <div className={styles.page}>
           <section className={styles.profileCard}>
-            <div className={styles.cover} />
+            <div
+              className={styles.cover}
+              style={profile.coverPhoto ? { backgroundImage: `url(${profile.coverPhoto})`, backgroundSize: "cover", backgroundPosition: "center", cursor: "pointer" } : {}}
+              onClick={() => profile.coverPhoto && setActiveLightbox({ src: profile.coverPhoto, title: `${user.name}'s Cover Banner`, subtitle: `@${user.username}` })}
+            />
             <div className={styles.profileBody}>
-              <span className={styles.avatar}>
+              <span
+                className={styles.avatar}
+                style={hasPicture ? { cursor: "pointer" } : {}}
+                onClick={() => hasPicture && setActiveLightbox({ src: user.profilePicture, title: `${user.name}'s Profile Picture`, subtitle: `@${user.username}` })}
+              >
                 {hasPicture ? <img src={user.profilePicture} alt="" /> : initials}
               </span>
               <div className={styles.identity}>
@@ -98,7 +109,9 @@ export default function UsernameProfilePage() {
                   <p>@{user.username}</p>
                 </div>
                 {isOwnProfile ? (
-                  <button type="button">Edit profile</button>
+                  <Link href="/dashboard/profile" className={styles.editBtn}>
+                    ✏️ Edit Profile
+                  </Link>
                 ) : (
                   <div className={styles.profileActions}>
                     <ConnectButton userId={user._id} />
@@ -141,6 +154,16 @@ export default function UsernameProfilePage() {
             )}
           </section>
         </div>
+      )}
+
+      {activeLightbox && (
+        <MediaLightbox
+          src={activeLightbox.src}
+          title={activeLightbox.title}
+          subtitle={activeLightbox.subtitle}
+          isVideo={activeLightbox.isVideo}
+          onClose={() => setActiveLightbox(null)}
+        />
       )}
     </DashboardLayout>
   );

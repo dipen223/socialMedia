@@ -12,6 +12,7 @@ const Sidebar = () => {
     { href: "/dashboard", label: "Home" },
     { href: user?.username ? `/${user.username}` : "/dashboard/profile", label: "My Profile", profile: true },
     { href: "/dashboard/connections", label: "Connections" },
+    { href: "/dashboard/saved", label: "Saved Bookmarks" },
     { href: "/dashboard/messages", label: "Messages" },
     { href: "/dashboard/discover", label: "Discover People" },
     { href: "/dashboard/settings", label: "Settings" },

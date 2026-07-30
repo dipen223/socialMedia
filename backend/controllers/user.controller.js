@@ -178,6 +178,45 @@ const uploadProfile = async (req, res) => {
 
 }
 
+const uploadCoverPhoto = async (req, res) => {
+    const userId = req.user.id;
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: "No file uploaded" });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) return res.status(404).json({ message: "User not found!" });
+
+        const fileStr = req.file.buffer.toString("base64");
+        const fileUri = `data:${req.file.mimetype};base64,${fileStr}`;
+
+        const result = await cloudinary.uploader.upload(fileUri, {
+            folder: "ripple/cover_photos",
+        });
+
+        let profile = await Profile.findOne({ userId });
+        if (!profile) {
+            profile = new Profile({ userId });
+        }
+
+        profile.coverPhoto = result.secure_url;
+        await profile.save();
+
+        res.json({
+            message: "Cover photo updated successfully",
+            coverPhoto: profile.coverPhoto,
+        });
+
+    } catch (err) {
+        console.error("COVER PHOTO UPLOAD ERROR:", err);
+        return res.status(500).json({
+            message: "Server Error!",
+            error: err?.message || err,
+        });
+    }
+};
+
 const updateUserProfile = async (req, res) => {
     const userId = req.user.id;
     const { name, email, username } = req.body;
@@ -373,6 +412,7 @@ export default {
     signup,
     login,
     uploadProfile,
+    uploadCoverPhoto,
     updateUserProfile,
     getUserProfile,
     updateProfileData,

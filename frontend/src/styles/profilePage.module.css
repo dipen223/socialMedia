@@ -11,6 +11,30 @@
 .profileActions { display: flex; align-items: center; gap: 8px; }
 .identity .messageButton { border: 1px solid #bfd5c8; background: #e9f3ed; color: #1f6b4f; }
 .identity .messageButton:hover { background: #dcece2; }
+
+.editBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: #10b981;
+  border: 1px solid #10b981;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 750;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+}
+
+.editBtn:hover {
+  background: #059669;
+  border-color: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.4);
+}
 .identity button:disabled { cursor: not-allowed; opacity: .65; }
 .actionError { margin-top: 9px; color: #963b34; font-size: 12px; text-align: right; }
 .bio { margin-top: 18px; color: #35443c; font-size: 14px; line-height: 1.65; }
