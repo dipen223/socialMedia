@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 import DiscussionRoom from "../models/discussionRoom.model.js";
 import User from "../models/user.model.js";
+import { closePublisherSessions } from "../services/discussionMedia.service.js";
+import DiscussionMessage from "../models/discussionMessage.model.js";
 
 const rooms = new Map();
 
@@ -47,7 +49,10 @@ const leaveRoom = async (io, socket, roomId) => {
     participant.socketIds.delete(socket.id);
     socket.leave(`discussion:${roomId}`);
     socket.data.discussionRooms?.delete(roomId);
-    if (participant.socketIds.size === 0) state.participants.delete(userId);
+    if (participant.socketIds.size === 0) {
+        state.participants.delete(userId);
+        await closePublisherSessions(roomId, userId, io);
+    }
 
     const count = state.participants.size;
     if (count === 0) rooms.delete(roomId);
@@ -99,7 +104,7 @@ const registerDiscussionHandlers = ({ io, socket }) => {
                     username: user.username,
                     profilePicture: user.profilePicture,
                     role,
-                    muted: role !== "host",
+                    muted: true,
                     requestedToSpeak: false,
                     socketIds: new Set([socket.id]),
                 });
@@ -169,15 +174,18 @@ const registerDiscussionHandlers = ({ io, socket }) => {
 
         if (payload.action === "mute") {
             target.muted = true;
+            await closePublisherSessions(roomId, target.userId, io);
             target.socketIds.forEach((id) => io.to(id).emit("discussion:force-mute", { roomId }));
         }
         if (payload.action === "move-to-audience") {
             target.role = "listener";
             target.muted = true;
+            await closePublisherSessions(roomId, target.userId, io);
             room.speakerIds.pull(target.userId);
             await room.save();
         }
         if (payload.action === "remove") {
+            await closePublisherSessions(roomId, target.userId, io);
             target.socketIds.forEach((id) => {
                 io.to(id).emit("discussion:removed", { roomId });
                 io.sockets.sockets.get(id)?.leave(`discussion:${roomId}`);
@@ -194,6 +202,142 @@ const registerDiscussionHandlers = ({ io, socket }) => {
         if (!participant || participant.role === "listener") return;
         participant.muted = Boolean(payload.muted);
         emitState(io, roomId);
+    });
+
+    socket.on("discussion:message", async (payload = {}, acknowledgement) => {
+        const acknowledge =
+            typeof acknowledgement === "function" ? acknowledgement : () => {};
+        const roomId = payload.roomId?.toString();
+        const body = typeof payload.body === "string" ? payload.body.trim() : "";
+        if (!mongoose.isValidObjectId(roomId) || !body || body.length > 1000) {
+            acknowledge({ ok: false, message: "Message must be 1–1,000 characters." });
+            return;
+        }
+        if (!socket.rooms.has(`discussion:${roomId}`)) {
+            acknowledge({ ok: false, message: "Join the discussion before chatting." });
+            return;
+        }
+        try {
+            const room = await DiscussionRoom.exists({ _id: roomId, status: "live" });
+            if (!room) {
+                acknowledge({ ok: false, message: "This discussion has ended." });
+                return;
+            }
+            const message = await DiscussionMessage.create({
+                roomId,
+                senderId: socket.user.id,
+                body,
+            });
+            await message.populate("senderId", "name username profilePicture");
+            io.to(`discussion:${roomId}`).emit("discussion:message:new", {
+                message: message.toObject(),
+            });
+            acknowledge({ ok: true, messageId: message._id.toString() });
+        } catch (error) {
+            console.error("Could not send discussion message:", error.message);
+            acknowledge({ ok: false, message: "Could not send the message." });
+        }
+    });
+
+    socket.on("discussion:message:react", async (payload = {}, acknowledgement) => {
+        const acknowledge =
+            typeof acknowledgement === "function" ? acknowledgement : () => {};
+        const roomId = payload.roomId?.toString();
+        const messageId = payload.messageId?.toString();
+        const emoji = typeof payload.emoji === "string" ? payload.emoji.trim() : "";
+        if (
+            !mongoose.isValidObjectId(roomId) ||
+            !mongoose.isValidObjectId(messageId) ||
+            !emoji ||
+            emoji.length > 12 ||
+            !socket.rooms.has(`discussion:${roomId}`)
+        ) {
+            acknowledge({ ok: false, message: "Invalid reaction." });
+            return;
+        }
+        try {
+            const message = await DiscussionMessage.findOne({
+                _id: messageId,
+                roomId,
+                deletedAt: null,
+            });
+            if (!message) {
+                acknowledge({ ok: false, message: "Message not found." });
+                return;
+            }
+            const userId = socket.user.id.toString();
+            const reaction = message.reactions.find((item) => item.emoji === emoji);
+            if (reaction) {
+                const hasReacted = reaction.userIds.some(
+                    (id) => id.toString() === userId
+                );
+                if (hasReacted) reaction.userIds.pull(socket.user.id);
+                else reaction.userIds.addToSet(socket.user.id);
+                if (reaction.userIds.length === 0) {
+                    message.reactions = message.reactions.filter(
+                        (item) => item.emoji !== emoji
+                    );
+                }
+            } else {
+                message.reactions.push({ emoji, userIds: [socket.user.id] });
+            }
+            await message.save();
+            io.to(`discussion:${roomId}`).emit("discussion:message:updated", {
+                messageId,
+                reactions: message.reactions,
+            });
+            acknowledge({ ok: true });
+        } catch (error) {
+            console.error("Could not react to discussion message:", error.message);
+            acknowledge({ ok: false, message: "Could not update reaction." });
+        }
+    });
+
+    socket.on("discussion:message:delete", async (payload = {}, acknowledgement) => {
+        const acknowledge =
+            typeof acknowledgement === "function" ? acknowledgement : () => {};
+        const roomId = payload.roomId?.toString();
+        const messageId = payload.messageId?.toString();
+        if (
+            !mongoose.isValidObjectId(roomId) ||
+            !mongoose.isValidObjectId(messageId)
+        ) {
+            acknowledge({ ok: false, message: "Invalid message." });
+            return;
+        }
+        try {
+            const room = await DiscussionRoom.findById(roomId).select("hostId");
+            const message = await DiscussionMessage.findOne({
+                _id: messageId,
+                roomId,
+                deletedAt: null,
+            });
+            if (!room || !message) {
+                acknowledge({ ok: false, message: "Message not found." });
+                return;
+            }
+            const currentUserId = socket.user.id.toString();
+            const allowed =
+                room.hostId.toString() === currentUserId ||
+                message.senderId.toString() === currentUserId;
+            if (!allowed) {
+                acknowledge({ ok: false, message: "You cannot remove this message." });
+                return;
+            }
+            message.body = "Message removed";
+            message.deletedAt = new Date();
+            message.deletedBy = socket.user.id;
+            message.reactions = [];
+            await message.save();
+            io.to(`discussion:${roomId}`).emit("discussion:message:deleted", {
+                messageId,
+                deletedAt: message.deletedAt,
+            });
+            acknowledge({ ok: true });
+        } catch (error) {
+            console.error("Could not delete discussion message:", error.message);
+            acknowledge({ ok: false, message: "Could not remove the message." });
+        }
     });
 
     socket.on("discussion:end", async (payload = {}, acknowledgement) => {

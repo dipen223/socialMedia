@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Post from "../models/posts.model.js";
 import DiscussionRoom from "../models/discussionRoom.model.js";
+import DiscussionMessage from "../models/discussionMessage.model.js";
 
 const roomPopulate = [
     { path: "hostId", select: "name username profilePicture" },
@@ -30,7 +31,7 @@ const startRoom = async (req, res) => {
         let room = await DiscussionRoom.findOne({ postId, status: "live" });
         if (!room) {
             const requestedTitle =
-                typeof req.body.title === "string" ? req.body.title.trim() : "";
+                typeof req.body?.title === "string" ? req.body.title.trim() : "";
             room = await DiscussionRoom.create({
                 postId,
                 hostId: currentUserId,
@@ -82,4 +83,26 @@ const getRoom = async (req, res) => {
     }
 };
 
-export default { startRoom, getRoom };
+const getMessages = async (req, res) => {
+    const { roomId } = req.params;
+    if (!mongoose.isValidObjectId(roomId)) {
+        return res.status(400).json({ message: "Invalid discussion room." });
+    }
+    try {
+        const room = await DiscussionRoom.exists({ _id: roomId });
+        if (!room) {
+            return res.status(404).json({ message: "Discussion room not found." });
+        }
+        const messages = await DiscussionMessage.find({ roomId })
+            .sort({ createdAt: -1 })
+            .limit(100)
+            .populate("senderId", "name username profilePicture")
+            .lean();
+        return res.status(200).json({ messages: messages.reverse() });
+    } catch (error) {
+        console.error("Could not get discussion messages:", error.message);
+        return res.status(500).json({ message: "Could not load live chat." });
+    }
+};
+
+export default { startRoom, getRoom, getMessages };

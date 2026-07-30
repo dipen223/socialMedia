@@ -1,4 +1,5 @@
 .shell { overflow: hidden; width: min(1100px, 100%); min-height: calc(100vh - 112px); margin: 22px auto; border: 1px solid #dce7e0; border-radius: 26px; background: #f9fbfa; box-shadow: 0 24px 70px rgba(25,55,41,.1); }
+.remoteAudio { position: absolute; overflow: hidden; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .topbar { display: flex; min-height: 60px; align-items: center; gap: 14px; padding: 0 24px; border-bottom: 1px solid #e3ebe6; background: rgba(255,255,255,.88); }
 .topbar button { border: 0; background: transparent; color: #486057; cursor: pointer; font-weight: 750; }
 .topbar > span:last-child { margin-left: auto; color: #7a8b82; font-size: 12px; }
@@ -30,17 +31,61 @@
 .largeAvatar svg { width: 14px; height: 14px; }.muted{background:#eef1ef;color:#718078}.unmuted{background:#1f7654;color:#fff}
 .speaker > strong { color: #26382e; font-size: 12px; }.speaker > small { color: #829087; font-size: 9px; text-transform: capitalize; }
 .moderation { display: flex; gap: 4px; margin-top: 4px; }.moderation button { padding: 4px 6px; border: 0; border-radius: 6px; background: #edf3ef; color: #587066; cursor: pointer; font-size: 8px; }
-.audiencePanel { padding: 27px 22px; border-left: 1px solid #e1e9e4; background: #fff; }
+.audiencePanel { display: flex; overflow: hidden; min-height: 520px; max-height: 660px; flex-direction: column; padding: 0; border-left: 1px solid #e1e9e4; background: #fff; }
+.panelTabs { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; padding: 12px; border-bottom: 1px solid #e7eee9; background: #fbfcfb; }
+.panelTabs button { display: flex; min-height: 38px; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 10px; background: transparent; color: #7b8981; cursor: pointer; font: 800 10px inherit; }
+.panelTabs button span { display: grid; min-width: 18px; height: 18px; place-items: center; border-radius: 7px; background: #edf2ef; color: #697970; font-size: 8px; }
+.panelTabs .activeTab { background: #e8f3ec; color: #1f6b4f; box-shadow: inset 0 0 0 1px #d5e8dc; }
+.panelTabs .activeTab span { background: #fff; color: #1f6b4f; }
+.peoplePanel { overflow-y: auto; padding: 22px; scrollbar-width: thin; scrollbar-color: #cbdad1 transparent; }
 .panelTitle { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }.panelTitle strong { color:#2a3c32;font-size:12px}.panelTitle span{display:grid;min-width:22px;height:22px;place-items:center;border-radius:8px;background:#edf5ef;color:#387258;font-size:9px;font-weight:800}
 .requests { margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid #e7ece9; }
 .requestRow { display: grid; grid-template-columns: 30px 1fr auto auto; align-items: center; gap: 7px; margin: 7px 0; }
 .requestRow > span,.audienceRow > span,.you > span { display:grid;width:30px;height:30px;place-items:center;border-radius:10px;background:#e7f1eb;color:#2b7054;font-size:9px;font-weight:850}.requestRow strong{font-size:10px}.requestRow button{padding:5px 7px;border:0;border-radius:7px;background:#1f6b4f;color:#fff;cursor:pointer;font-size:8px}.requestRow button:last-child{background:#eef2ef;color:#64736b}
 .audienceList { display: grid; gap: 10px; }.audienceList > p { color:#8b9791;font-size:10px}
 .audienceRow { display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:8px}.audienceRow div{display:grid;min-width:0}.audienceRow strong,.audienceRow small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.audienceRow strong{color:#34483d;font-size:10px}.audienceRow small{color:#8b9891;font-size:8px}.audienceRow i{color:#af7823;font-size:8px;font-style:normal}.audienceRow button{border:0;background:transparent;color:#89958e;cursor:pointer}
+.chatPanel { display: flex; min-height: 0; flex: 1; flex-direction: column; }
+.chatStream { overflow-x: hidden; overflow-y: auto; min-height: 0; flex: 1; padding: 17px 15px 12px; scroll-behavior: smooth; scrollbar-width: thin; scrollbar-color: #cbdad1 transparent; }
+.emptyChat { display: grid; max-width: 210px; justify-items: center; gap: 6px; margin: 72px auto 0; color: #7b8981; text-align: center; }
+.emptyChat > span { display: grid; width: 48px; height: 48px; place-items: center; border: 1px solid #dbe9e0; border-radius: 17px; background: linear-gradient(145deg,#f5fbf7,#e7f2eb); font-size: 23px; box-shadow: 0 8px 24px rgba(32,84,58,.08); }
+.emptyChat strong { margin-top: 5px; color: #2d4438; font-size: 11px; }
+.emptyChat p { font-size: 9px; line-height: 1.5; }
+.chatMessage { display: grid; grid-template-columns: 31px minmax(0,1fr); align-items: flex-start; gap: 8px; margin-bottom: 13px; }
+.chatAvatar { display: grid; overflow: hidden; width: 31px; height: 31px; place-items: center; border-radius: 11px; background: #e7f1eb; color: #2b7054; font-size: 9px; font-weight: 850; }
+.chatAvatar img { width: 100%; height: 100%; object-fit: cover; }
+.chatBubble { min-width: 0; padding: 9px 10px 8px; border: 1px solid #e4ebe7; border-radius: 4px 13px 13px; background: #f8faf8; }
+.ownChatMessage .chatBubble { border-color: #d6e8dc; background: #edf6f0; }
+.chatBubble header { display: flex; min-width: 0; align-items: center; gap: 6px; }
+.chatBubble header strong { overflow: hidden; color: #294036; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
+.chatBubble time { color: #9aa59f; font-size: 7px; white-space: nowrap; }
+.chatBubble header > button { margin-left: auto; border: 0; background: transparent; color: #9aa69f; cursor: pointer; font-size: 9px; letter-spacing: 1px; opacity: 0; }
+.chatMessage:hover .chatBubble header > button { opacity: 1; }
+.chatBubble > p { margin: 4px 0 0; color: #3d5046; font-size: 10px; line-height: 1.45; overflow-wrap: anywhere; white-space: pre-wrap; }
+.chatBubble > .deletedMessage { color: #98a39d; font-style: italic; }
+.messageReactions { position: relative; display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
+.messageReactions > button { display: flex; min-height: 23px; align-items: center; gap: 3px; padding: 0 6px; border: 1px solid #dfe8e2; border-radius: 999px; background: #fff; cursor: pointer; font-size: 10px; }
+.messageReactions > button span { color: #718078; font-size: 8px; font-weight: 800; }
+.messageReactions > .myReaction { border-color: #9dcab4; background: #e5f3ea; }
+.quickReact { position: absolute; right: 0; bottom: calc(100% + 7px); display: none; gap: 2px; padding: 4px; border: 1px solid #dce6df; border-radius: 999px; background: #fff; box-shadow: 0 8px 26px rgba(25,56,40,.16); }
+.chatMessage:hover .quickReact { display: flex; }
+.quickReact button { display: grid; width: 25px; height: 25px; place-items: center; border: 0; border-radius: 50%; background: transparent; cursor: pointer; font-size: 13px; }
+.quickReact button:hover { background: #edf5ef; transform: scale(1.12); }
+.chatComposer { position: relative; padding: 10px 12px 11px; border-top: 1px solid #e5ece8; background: #fbfcfb; }
+.chatComposer > div:last-of-type { display: grid; grid-template-columns: 34px minmax(0,1fr) 34px; align-items: end; gap: 4px; padding: 5px; border: 1px solid #d8e5dd; border-radius: 15px; background: #fff; box-shadow: 0 5px 18px rgba(37,72,54,.06); }
+.chatComposer textarea { resize: none; overflow-y: auto; min-height: 34px; max-height: 84px; padding: 8px 4px 5px; border: 0; outline: 0; background: transparent; color: #2b3e34; font: 10px/1.4 inherit; }
+.chatComposer button { border: 0; cursor: pointer; }
+.emojiButton { width: 32px; height: 32px; border-radius: 10px; background: transparent; color: #759084; font-size: 20px; }
+.emojiButton:hover,.emojiButton[aria-expanded="true"] { background: #edf5ef; color: #1f6b4f; }
+.sendChat { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 11px; background: #1f6b4f; color: #fff; font-size: 18px; font-weight: 800; }
+.sendChat:disabled { opacity: .35; cursor: not-allowed; }
+.chatComposer > small { display: block; margin: 5px 4px 0; color: #9aa59f; font-size: 7px; }
+.emojiPicker { position: absolute; right: 12px; bottom: calc(100% - 4px); left: 12px; z-index: 5; display: grid; grid-template-columns: repeat(6,1fr); gap: 3px; padding: 9px; border: 1px solid #dce7e0; border-radius: 14px; background: rgba(255,255,255,.97); box-shadow: 0 16px 40px rgba(28,59,43,.18); backdrop-filter: blur(12px); }
+.emojiPicker button { display: grid; aspect-ratio: 1; place-items: center; border-radius: 9px; background: transparent; font-size: 17px; }
+.emojiPicker button:hover { background: #e9f3ed; transform: scale(1.08); }
 .controls { position: sticky; bottom: 0; display: flex; min-height: 78px; align-items: center; gap: 10px; padding: 12px 24px; border-top: 1px solid #dfe8e2; background: rgba(255,255,255,.94); backdrop-filter: blur(14px); }
 .you { display:flex;align-items:center;gap:9px;margin-right:auto}.you div{display:grid}.you strong{font-size:11px}.you small{color:#839087;font-size:8px;text-transform:capitalize}
 .controls button { min-height: 40px; padding: 0 15px; border: 0; border-radius: 12px; cursor: pointer; font-weight: 800; }
 .primary,.micButton { background:#1f6b4f;color:#fff}.raised{background:#fff3dd;color:#8a651f}.micButton{display:flex;align-items:center;gap:7px}.micButton svg{width:17px}.micButton:disabled{opacity:.4;cursor:not-allowed}.endButton{background:#fff0ef;color:#aa3f39}
 .controls > div:only-child { display:flex;width:100%;align-items:center;justify-content:space-between}.controls > div:only-child button{background:#1f6b4f;color:#fff}
 .state { display:grid;min-height:60vh;place-content:center;justify-items:center;gap:8px;color:#64756c;text-align:center}.state h1{color:#21342a}.state a{color:#1f6b4f;font-weight:800}
-@media(max-width:800px){.shell{margin:0;border-radius:0}.content{grid-template-columns:1fr}.audiencePanel{border-top:1px solid #e1e9e4;border-left:0}.hero{align-items:flex-start;flex-direction:column}.stage{padding:24px 20px}}@media(max-width:520px){.topbar{padding:0 14px}.hero{padding:26px 20px}.hero h1{font-size:27px}.setupNotice{margin:12px}.controls{padding:10px 12px}.controls button{padding:0 10px;font-size:10px}.speakerGrid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:800px){.shell{margin:0;border-radius:0}.content{grid-template-columns:1fr}.audiencePanel{min-height:520px;border-top:1px solid #e1e9e4;border-left:0}.hero{align-items:flex-start;flex-direction:column}.stage{padding:24px 20px}}@media(max-width:520px){.topbar{padding:0 14px}.hero{padding:26px 20px}.hero h1{font-size:27px}.setupNotice{margin:12px}.controls{padding:10px 12px}.controls button{padding:0 10px;font-size:10px}.speakerGrid{grid-template-columns:repeat(2,1fr)}.audiencePanel{max-height:600px}.quickReact{display:flex}}

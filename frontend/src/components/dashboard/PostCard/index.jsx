@@ -248,7 +248,10 @@ export default function PostCard({ post, detail = false }) {
 
     setStartingDiscussion(true);
     try {
-      const response = await clientServer.post(`/posts/${post._id}/discussion-room`);
+      const response = await clientServer.post(
+        `/posts/${post._id}/discussion-room`,
+        {}
+      );
       setLiveDiscussion(response.data.room);
       router.push(`/dashboard/discussions/${response.data.room._id}`);
     } catch (error) {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { useSelector } from "react-redux";
@@ -16,6 +16,22 @@ const MicIcon = ({ off = false }) => (
 
 const initials = (name = "Ripple member") =>
   name.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase();
+const QUICK_EMOJIS = ["👏", "❤️", "😂", "🔥", "💯", "🤯", "🙌", "👍", "🎉", "💡", "🤝", "🌊"];
+const formatChatTime = (value) =>
+  new Intl.DateTimeFormat("en", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
+
+function RemoteAudio({ stream }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    ref.current.srcObject = stream;
+    ref.current.play().catch(() => {});
+  }, [stream]);
+  return <audio ref={ref} autoPlay playsInline />;
+}
 
 export default function DiscussionRoomPage() {
   const router = useRouter();
@@ -29,12 +45,116 @@ export default function DiscussionRoomPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [ended, setEnded] = useState(false);
+  const [audioStatus, setAudioStatus] = useState("idle");
+  const [remoteAudio, setRemoteAudio] = useState([]);
+  const [sidePanel, setSidePanel] = useState("chat");
+  const [messages, setMessages] = useState([]);
+  const [chatDraft, setChatDraft] = useState("");
+  const [sendingChat, setSendingChat] = useState(false);
+  const [showEmojis, setShowEmojis] = useState(false);
+  const chatEndRef = useRef(null);
+  const publishPeerRef = useRef(null);
+  const publishSessionRef = useRef("");
+  const localStreamRef = useRef(null);
+  const subscribePeerRef = useRef(null);
+  const subscribeSessionRef = useRef("");
+  const subscribedTracksRef = useRef(new Set());
+  const trackOwnersRef = useRef(new Map());
+  const subscriptionQueueRef = useRef(Promise.resolve());
 
   const me = participants.find((person) => person.userId === currentUserId);
   const isHost = role === "host";
   const speakers = participants.filter((person) => person.role !== "listener");
   const audience = participants.filter((person) => person.role === "listener");
   const requests = audience.filter((person) => person.requestedToSpeak);
+
+  const createPeerConnection = () =>
+    new RTCPeerConnection({
+      iceServers: [{ urls: "stun:stun.cloudflare.com:3478" }],
+      bundlePolicy: "max-bundle",
+    });
+
+  const ensureSubscriber = useCallback(async () => {
+    if (subscribePeerRef.current && subscribeSessionRef.current) {
+      return {
+        peer: subscribePeerRef.current,
+        sessionId: subscribeSessionRef.current,
+      };
+    }
+    const roomId = router.query.roomId;
+    const response = await clientServer.post(
+      `/discussion-rooms/${roomId}/media/sessions`,
+      { purpose: "subscribe" }
+    );
+    const peer = createPeerConnection();
+    peer.ontrack = ({ track, transceiver }) => {
+      const owner = trackOwnersRef.current.get(transceiver.mid);
+      const key = owner
+        ? `${owner.sessionId}:${owner.trackName}`
+        : `${transceiver.mid}:${track.id}`;
+      const stream = new MediaStream([track]);
+      setRemoteAudio((current) => [
+        ...current.filter((entry) => entry.key !== key),
+        { key, stream },
+      ]);
+      track.onended = () => {
+        setRemoteAudio((current) => current.filter((entry) => entry.key !== key));
+      };
+    };
+    subscribePeerRef.current = peer;
+    subscribeSessionRef.current = response.data.sessionId;
+    return { peer, sessionId: response.data.sessionId };
+  }, [router.query.roomId]);
+
+  const subscribeToTrack = useCallback((track) => {
+    if (
+      !track?.sessionId ||
+      !track?.trackName ||
+      track.userId === currentUserId
+    ) return;
+    const key = `${track.sessionId}:${track.trackName}`;
+    if (subscribedTracksRef.current.has(key)) return;
+    subscribedTracksRef.current.add(key);
+
+    subscriptionQueueRef.current = subscriptionQueueRef.current
+      .then(async () => {
+        const roomId = router.query.roomId;
+        const { peer, sessionId } = await ensureSubscriber();
+        const response = await clientServer.post(
+          `/discussion-rooms/${roomId}/media/sessions/${sessionId}/subscribe`,
+          {
+            sourceSessionId: track.sessionId,
+            trackName: track.trackName,
+          }
+        );
+        const remoteDescription = response.data.sessionDescription;
+        const receivedTrack = response.data.tracks?.[0];
+        if (receivedTrack?.mid) {
+          trackOwnersRef.current.set(receivedTrack.mid, track);
+        }
+        if (response.data.requiresImmediateRenegotiation && remoteDescription) {
+          await peer.setRemoteDescription(remoteDescription);
+          const answer = await peer.createAnswer();
+          await peer.setLocalDescription(answer);
+          await clientServer.put(
+            `/discussion-rooms/${roomId}/media/sessions/${sessionId}/renegotiate`,
+            {
+              sessionDescription: {
+                sdp: peer.localDescription.sdp,
+                type: peer.localDescription.type,
+              },
+            }
+          );
+        }
+      })
+      .catch((subscriptionError) => {
+        subscribedTracksRef.current.delete(key);
+        setError(
+          subscriptionError.response?.data?.message ||
+          "Could not connect to a speaker's audio."
+        );
+      });
+  }, [currentUserId, ensureSubscriber, router.query.roomId]);
 
   const leave = useCallback(() => {
     const socket = getSocket();
@@ -66,15 +186,74 @@ export default function DiscussionRoomPage() {
       if (payload.roomId === roomId) setRole("speaker");
     };
     const handleForceMute = (payload) => {
-      if (payload.roomId === roomId) setError("The host muted your microphone.");
+      if (payload.roomId === roomId) {
+        localStreamRef.current?.getAudioTracks().forEach((track) => {
+          track.enabled = false;
+        });
+        setError("The host muted your microphone.");
+      }
+    };
+    const handleMediaTrack = (track) => {
+      if (track.roomId === roomId) subscribeToTrack(track);
+    };
+    const handleMediaClosed = ({ sessionId }) => {
+      if (sessionId === publishSessionRef.current) {
+        localStreamRef.current?.getTracks().forEach((track) => track.stop());
+        publishPeerRef.current?.close();
+        localStreamRef.current = null;
+        publishPeerRef.current = null;
+        publishSessionRef.current = "";
+        setAudioStatus("muted");
+      }
+      [...subscribedTracksRef.current].forEach((key) => {
+        if (key.startsWith(`${sessionId}:`)) {
+          subscribedTracksRef.current.delete(key);
+        }
+      });
+      setRemoteAudio((current) =>
+        current.filter((entry) => !entry.key.startsWith(`${sessionId}:`))
+      );
+    };
+    const handleChatMessage = ({ message }) => {
+      if (message?.roomId?.toString() !== roomId) return;
+      setMessages((current) =>
+        current.some((item) => item._id === message._id)
+          ? current
+          : [...current, message]
+      );
+    };
+    const handleChatUpdated = ({ messageId, reactions }) => {
+      setMessages((current) =>
+        current.map((message) =>
+          message._id === messageId ? { ...message, reactions } : message
+        )
+      );
+    };
+    const handleChatDeleted = ({ messageId, deletedAt }) => {
+      setMessages((current) =>
+        current.map((message) =>
+          message._id === messageId
+            ? {
+                ...message,
+                body: "Message removed",
+                deletedAt,
+                reactions: [],
+              }
+            : message
+        )
+      );
     };
 
     const load = async () => {
       try {
-        const response = await clientServer.get(`/discussion-rooms/${roomId}`);
+        const [response, messagesResponse] = await Promise.all([
+          clientServer.get(`/discussion-rooms/${roomId}`),
+          clientServer.get(`/discussion-rooms/${roomId}/messages`),
+        ]);
         if (!active) return;
         setRoom(response.data.room);
         setMedia(response.data.media);
+        setMessages(messagesResponse.data.messages || []);
         if (response.data.room.status === "ended") {
           setEnded(true);
           return;
@@ -84,10 +263,21 @@ export default function DiscussionRoomPage() {
         socket?.on("discussion:removed", handleRemoved);
         socket?.on("discussion:promoted", handlePromoted);
         socket?.on("discussion:force-mute", handleForceMute);
+        socket?.on("discussion:media-track", handleMediaTrack);
+        socket?.on("discussion:media-closed", handleMediaClosed);
+        socket?.on("discussion:message:new", handleChatMessage);
+        socket?.on("discussion:message:updated", handleChatUpdated);
+        socket?.on("discussion:message:deleted", handleChatDeleted);
         socket?.emit("discussion:join", { roomId }, (result) => {
           if (!result?.ok) setError(result?.message || "Could not join the room.");
           else setRole(result.role);
         });
+        if (response.data.media?.configured) {
+          const tracksResponse = await clientServer.get(
+            `/discussion-rooms/${roomId}/media/tracks`
+          );
+          tracksResponse.data.tracks?.forEach(subscribeToTrack);
+        }
       } catch (requestError) {
         if (active) setError(requestError.response?.data?.message || "Could not load the discussion.");
       } finally {
@@ -104,8 +294,39 @@ export default function DiscussionRoomPage() {
       socket?.off("discussion:removed", handleRemoved);
       socket?.off("discussion:promoted", handlePromoted);
       socket?.off("discussion:force-mute", handleForceMute);
+      socket?.off("discussion:media-track", handleMediaTrack);
+      socket?.off("discussion:media-closed", handleMediaClosed);
+      socket?.off("discussion:message:new", handleChatMessage);
+      socket?.off("discussion:message:updated", handleChatUpdated);
+      socket?.off("discussion:message:deleted", handleChatDeleted);
+      const sessions = [
+        publishSessionRef.current,
+        subscribeSessionRef.current,
+      ].filter(Boolean);
+      sessions.forEach((sessionId) => {
+        clientServer.delete(
+          `/discussion-rooms/${roomId}/media/sessions/${sessionId}`
+        ).catch(() => {});
+      });
+      localStreamRef.current?.getTracks().forEach((track) => track.stop());
+      publishPeerRef.current?.close();
+      subscribePeerRef.current?.close();
     };
-  }, [router.isReady, router.query.roomId]);
+  }, [router.isReady, router.query.roomId, subscribeToTrack]);
+
+  useEffect(() => {
+    if (me?.role === "listener") {
+      localStreamRef.current?.getAudioTracks().forEach((track) => {
+        track.enabled = false;
+      });
+    }
+  }, [me?.role]);
+
+  useEffect(() => {
+    if (sidePanel === "chat") {
+      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, sidePanel]);
 
   const postExcerpt = useMemo(() => {
     const body = room?.postId?.body || "";
@@ -131,6 +352,113 @@ export default function DiscussionRoomPage() {
     });
   };
 
+  const sendChatMessage = () => {
+    const body = chatDraft.trim();
+    if (!body || sendingChat || ended) return;
+    setSendingChat(true);
+    getSocket()?.emit(
+      "discussion:message",
+      { roomId: room._id, body },
+      (result) => {
+        setSendingChat(false);
+        if (result?.ok) {
+          setChatDraft("");
+          setShowEmojis(false);
+        } else {
+          setError(result?.message || "Could not send the message.");
+        }
+      }
+    );
+  };
+
+  const reactToMessage = (messageId, emoji) => {
+    getSocket()?.emit(
+      "discussion:message:react",
+      { roomId: room._id, messageId, emoji },
+      (result) => {
+        if (!result?.ok) setError(result?.message || "Could not add reaction.");
+      }
+    );
+  };
+
+  const deleteChatMessage = (messageId) => {
+    getSocket()?.emit(
+      "discussion:message:delete",
+      { roomId: room._id, messageId },
+      (result) => {
+        if (!result?.ok) setError(result?.message || "Could not remove message.");
+      }
+    );
+  };
+
+  const toggleMicrophone = async () => {
+    if (!media?.configured || audioStatus === "connecting") return;
+    const shouldUnmute = me?.muted !== false;
+    setError("");
+    try {
+      if (shouldUnmute && !localStreamRef.current) {
+        setAudioStatus("connecting");
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+          video: false,
+        });
+        const sessionResponse = await clientServer.post(
+          `/discussion-rooms/${room._id}/media/sessions`,
+          { purpose: "publish" }
+        );
+        const peer = createPeerConnection();
+        const audioTrack = stream.getAudioTracks()[0];
+        audioTrack.enabled = false;
+        const transceiver = peer.addTransceiver(audioTrack, {
+          direction: "sendonly",
+        });
+        const offer = await peer.createOffer();
+        await peer.setLocalDescription(offer);
+        const publishResponse = await clientServer.post(
+          `/discussion-rooms/${room._id}/media/sessions/${sessionResponse.data.sessionId}/publish`,
+          {
+            mid: transceiver.mid,
+            sessionDescription: {
+              sdp: peer.localDescription.sdp,
+              type: peer.localDescription.type,
+            },
+          }
+        );
+        await peer.setRemoteDescription(
+          publishResponse.data.sessionDescription
+        );
+        localStreamRef.current = stream;
+        publishPeerRef.current = peer;
+        publishSessionRef.current = sessionResponse.data.sessionId;
+      }
+
+      localStreamRef.current?.getAudioTracks().forEach((track) => {
+        track.enabled = shouldUnmute;
+      });
+      getSocket()?.emit("discussion:toggle-mute", {
+        roomId: room._id,
+        muted: !shouldUnmute,
+      });
+      setAudioStatus(shouldUnmute ? "live" : "muted");
+    } catch (mediaError) {
+      localStreamRef.current?.getTracks().forEach((track) => track.stop());
+      localStreamRef.current = null;
+      publishPeerRef.current?.close();
+      publishPeerRef.current = null;
+      setAudioStatus("error");
+      setError(
+        mediaError.response?.data?.message ||
+        (mediaError.name === "NotAllowedError"
+          ? "Microphone permission was denied."
+          : "Could not connect your microphone.")
+      );
+    }
+  };
+
   if (loading) return <DashboardLayout wide><div className={styles.state}>Entering discussion…</div></DashboardLayout>;
   if (!room || error && !participants.length) {
     return <DashboardLayout wide><div className={styles.state}><h1>Discussion unavailable</h1><p>{error}</p><Link href="/dashboard">Back to posts</Link></div></DashboardLayout>;
@@ -139,6 +467,11 @@ export default function DiscussionRoomPage() {
   return (
     <DashboardLayout wide>
       <section className={styles.shell}>
+        <div className={styles.remoteAudio} aria-hidden="true">
+          {remoteAudio.map((entry) => (
+            <RemoteAudio key={entry.key} stream={entry.stream} />
+          ))}
+        </div>
         <header className={styles.topbar}>
           <button type="button" onClick={leave}>← Leave quietly</button>
           <div className={styles.livePill}><i /> {ended ? "Ended" : "Live"}</div>
@@ -191,30 +524,115 @@ export default function DiscussionRoomPage() {
           </section>
 
           <aside className={styles.audiencePanel}>
-            {isHost && requests.length > 0 && (
-              <div className={styles.requests}>
-                <div className={styles.panelTitle}><strong>Speaker requests</strong><span>{requests.length}</span></div>
-                {requests.map((person) => (
-                  <div className={styles.requestRow} key={person.userId}>
-                    <span>{initials(person.name)}</span><strong>{person.name}</strong>
-                    <button type="button" onClick={() => decide(person.userId, true)}>Invite</button>
-                    <button type="button" onClick={() => decide(person.userId, false)}>×</button>
+            <div className={styles.panelTabs} role="tablist">
+              <button className={sidePanel === "chat" ? styles.activeTab : ""} type="button" role="tab" aria-selected={sidePanel === "chat"} onClick={() => setSidePanel("chat")}>
+                Live chat <span>{messages.length}</span>
+              </button>
+              <button className={sidePanel === "people" ? styles.activeTab : ""} type="button" role="tab" aria-selected={sidePanel === "people"} onClick={() => setSidePanel("people")}>
+                People <span>{participants.length}</span>
+              </button>
+            </div>
+
+            {sidePanel === "people" ? (
+              <div className={styles.peoplePanel}>
+                {isHost && requests.length > 0 && (
+                  <div className={styles.requests}>
+                    <div className={styles.panelTitle}><strong>Speaker requests</strong><span>{requests.length}</span></div>
+                    {requests.map((person) => (
+                      <div className={styles.requestRow} key={person.userId}>
+                        <span>{initials(person.name)}</span><strong>{person.name}</strong>
+                        <button type="button" onClick={() => decide(person.userId, true)}>Invite</button>
+                        <button type="button" onClick={() => decide(person.userId, false)}>×</button>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
+                <div className={styles.panelTitle}><strong>In the room</strong><span>{audience.length}</span></div>
+                <div className={styles.audienceList}>
+                  {audience.map((person) => (
+                    <div className={styles.audienceRow} key={person.userId}>
+                      <span>{initials(person.name)}</span>
+                      <div><strong>{person.name}</strong><small>@{person.username}</small></div>
+                      {person.requestedToSpeak && <i>Hand raised</i>}
+                      {isHost && <button type="button" onClick={() => moderate(person.userId, "remove")}>•••</button>}
+                    </div>
+                  ))}
+                  {!audience.length && <p>The audience will appear here.</p>}
+                </div>
+              </div>
+            ) : (
+              <div className={styles.chatPanel}>
+                <div className={styles.chatStream} aria-live="polite">
+                  {!messages.length && (
+                    <div className={styles.emptyChat}>
+                      <span>👋</span>
+                      <strong>Start the conversation</strong>
+                      <p>React to what’s being said and make everyone feel welcome.</p>
+                    </div>
+                  )}
+                  {messages.map((message) => {
+                    const sender = message.senderId || {};
+                    const senderId = (sender._id || sender).toString();
+                    const canDelete = isHost || senderId === currentUserId;
+                    return (
+                      <article className={`${styles.chatMessage} ${senderId === currentUserId ? styles.ownChatMessage : ""}`} key={message._id}>
+                        <span className={styles.chatAvatar}>
+                          {sender.profilePicture && sender.profilePicture !== "default.jpg"
+                            ? <img src={sender.profilePicture} alt="" />
+                            : initials(sender.name)}
+                        </span>
+                        <div className={styles.chatBubble}>
+                          <header>
+                            <strong>{sender.name || "Ripple member"}</strong>
+                            <time>{formatChatTime(message.createdAt)}</time>
+                            {canDelete && !message.deletedAt && (
+                              <button type="button" aria-label="Remove message" onClick={() => deleteChatMessage(message._id)}>•••</button>
+                            )}
+                          </header>
+                          <p className={message.deletedAt ? styles.deletedMessage : ""}>{message.body}</p>
+                          {!message.deletedAt && (
+                            <div className={styles.messageReactions}>
+                              {(message.reactions || []).map((reaction) => {
+                                const mine = reaction.userIds?.some(
+                                  (id) => (id._id || id).toString() === currentUserId
+                                );
+                                return (
+                                  <button className={mine ? styles.myReaction : ""} type="button" key={reaction.emoji} onClick={() => reactToMessage(message._id, reaction.emoji)}>
+                                    {reaction.emoji} <span>{reaction.userIds?.length || 0}</span>
+                                  </button>
+                                );
+                              })}
+                              <div className={styles.quickReact}>
+                                {["👏", "❤️", "😂", "🔥"].map((emoji) => (
+                                  <button type="button" key={emoji} onClick={() => reactToMessage(message._id, emoji)}>{emoji}</button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </article>
+                    );
+                  })}
+                  <div ref={chatEndRef} />
+                </div>
+
+                <div className={styles.chatComposer}>
+                  {showEmojis && (
+                    <div className={styles.emojiPicker}>
+                      {QUICK_EMOJIS.map((emoji) => (
+                        <button type="button" key={emoji} onClick={() => setChatDraft((draft) => `${draft}${emoji}`)}>{emoji}</button>
+                      ))}
+                    </div>
+                  )}
+                  <div>
+                    <button className={styles.emojiButton} type="button" aria-label="Choose emoji" aria-expanded={showEmojis} onClick={() => setShowEmojis((open) => !open)}>☺</button>
+                    <textarea value={chatDraft} onChange={(event) => setChatDraft(event.target.value)} placeholder={ended ? "Discussion ended" : "Say something thoughtful…"} maxLength={1000} rows={1} disabled={ended} />
+                    <button className={styles.sendChat} type="button" onClick={sendChatMessage} disabled={!chatDraft.trim() || sendingChat || ended} aria-label="Send message">↑</button>
+                  </div>
+                  <small>{chatDraft.length ? `${chatDraft.length}/1000` : "Be kind. This chat is shared with everyone."}</small>
+                </div>
               </div>
             )}
-            <div className={styles.panelTitle}><strong>In the room</strong><span>{audience.length}</span></div>
-            <div className={styles.audienceList}>
-              {audience.map((person) => (
-                <div className={styles.audienceRow} key={person.userId}>
-                  <span>{initials(person.name)}</span>
-                  <div><strong>{person.name}</strong><small>@{person.username}</small></div>
-                  {person.requestedToSpeak && <i>Hand raised</i>}
-                  {isHost && <button type="button" onClick={() => moderate(person.userId, "remove")}>•••</button>}
-                </div>
-              ))}
-              {!audience.length && <p>The audience will appear here.</p>}
-            </div>
           </aside>
         </main>
 
@@ -229,8 +647,8 @@ export default function DiscussionRoomPage() {
                   {me?.requestedToSpeak ? "Lower hand" : "Request to speak"}
                 </button>
               ) : (
-                <button className={styles.micButton} type="button" disabled={!media?.configured} title={!media?.configured ? "Configure Cloudflare Realtime SFU first" : ""}>
-                  <MicIcon off={me?.muted} /> {me?.muted ? "Unmute" : "Mute"}
+                <button className={styles.micButton} type="button" disabled={!media?.configured || audioStatus === "connecting"} onClick={toggleMicrophone} title={!media?.configured ? "Configure Cloudflare Realtime SFU first" : ""}>
+                  <MicIcon off={me?.muted} /> {audioStatus === "connecting" ? "Connecting…" : me?.muted ? "Unmute" : "Mute"}
                 </button>
               )}
               {isHost && <button className={styles.endButton} type="button" onClick={endRoom}>End room</button>}
