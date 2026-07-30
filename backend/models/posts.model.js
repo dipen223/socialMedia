@@ -17,6 +17,12 @@ const postSchema = new Schema({
             ref: "User"
         }
     ],
+    savedBy: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User"
+        }
+    ],
     media: {
         type: String,
         default: ''

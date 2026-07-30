@@ -16,6 +16,8 @@ import {
   getMyConnections,
 } from "@/config/redux/action/connectionAction";
 
+import { getSocket } from "@/config/socket";
+
 const SearchIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="m21 21-4.35-4.35m2.35-5.4A7.75 7.75 0 1 1 3.5 11.25a7.75 7.75 0 0 1 15.5 0Z" />
@@ -34,9 +36,36 @@ const NetworkIcon = () => (
   </svg>
 );
 
+const CompassIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.8" fill="none" />
+    <polygon points="16.24,7.76 14.12,14.12 7.76,16.24 9.88,9.88" stroke="currentColor" strokeWidth="1.8" fill="none" />
+  </svg>
+);
+
 const BellIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4" />
+  </svg>
+);
+
+const ClockIcon = () => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+const BookmarkNavIcon = () => (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
   </svg>
 );
 
@@ -59,10 +88,97 @@ export default function Navbar() {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
+  const [searchHistory, setSearchHistory] = useState([]);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const menuRef = useRef(null);
   const notificationRef = useRef(null);
+  const searchContainerRef = useRef(null);
   const profile = useSelector((state) => state.auth.user);
+
+  // Load search history from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("ripple_search_history");
+      if (saved) {
+        setSearchHistory(JSON.parse(saved));
+      }
+    } catch {
+      // Ignore storage errors
+    }
+  }, []);
+
+  const saveProfileToHistory = (person) => {
+    if (!person) return;
+    const isObj = typeof person === "object" && person.username;
+
+    setSearchHistory((prev) => {
+      const filtered = prev.filter((item) => {
+        if (isObj && typeof item === "object") {
+          return item.username?.toLowerCase() !== person.username.toLowerCase();
+        }
+        if (isObj && typeof item === "string") {
+          return item.toLowerCase() !== person.username.toLowerCase() && item.toLowerCase() !== person.name?.toLowerCase();
+        }
+        if (!isObj && typeof item === "object") {
+          return item.username?.toLowerCase() !== person.toLowerCase() && item.name?.toLowerCase() !== person.toLowerCase();
+        }
+        return item.toLowerCase() !== person.toLowerCase();
+      });
+
+      const entry = isObj
+        ? {
+            _id: person._id,
+            name: person.name,
+            username: person.username,
+            profilePicture: person.profilePicture || "default.jpg",
+          }
+        : person.trim();
+
+      const updated = [entry, ...filtered].slice(0, 5);
+      try {
+        localStorage.setItem("ripple_search_history", JSON.stringify(updated));
+      } catch {
+        // Ignore storage errors
+      }
+      return updated;
+    });
+  };
+
+  const removeFromHistory = (itemToRemove, e) => {
+    e.stopPropagation();
+    setSearchHistory((prev) => {
+      const updated = prev.filter((item) => {
+        if (typeof item === "object" && typeof itemToRemove === "object") {
+          return item.username !== itemToRemove.username;
+        }
+        if (typeof item === "object") {
+          return item.username !== itemToRemove && item.name !== itemToRemove;
+        }
+        if (typeof itemToRemove === "object") {
+          return item !== itemToRemove.username && item !== itemToRemove.name;
+        }
+        return item !== itemToRemove;
+      });
+      try {
+        localStorage.setItem("ripple_search_history", JSON.stringify(updated));
+      } catch {
+        // Ignore storage errors
+      }
+      return updated;
+    });
+  };
+
+  const clearHistory = (e) => {
+    e.stopPropagation();
+    setSearchHistory([]);
+    try {
+      localStorage.removeItem("ripple_search_history");
+    } catch {
+      // Ignore storage errors
+    }
+  };
+
   const {
     notifications,
     unreadCount,
@@ -90,6 +206,7 @@ export default function Navbar() {
       if (event.key === "Escape") {
         setIsMenuOpen(false);
         setIsNotificationsOpen(false);
+        setIsSearchFocused(false);
       }
 
       if (event.type === "mousedown") {
@@ -98,6 +215,9 @@ export default function Navbar() {
         }
         if (!notificationRef.current?.contains(event.target)) {
           setIsNotificationsOpen(false);
+        }
+        if (!searchContainerRef.current?.contains(event.target)) {
+          setIsSearchFocused(false);
         }
       }
     };
@@ -110,6 +230,33 @@ export default function Navbar() {
       document.removeEventListener("keydown", closeMenu);
     };
   }, []);
+
+  // Fetch notifications on mount and listen to real-time socket updates
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (!token) return;
+
+    dispatch(getNotifications());
+
+    const socket = getSocket();
+    if (socket) {
+      if (!socket.connected) {
+        socket.connect();
+      }
+
+      const handleLiveNotification = () => {
+        dispatch(getNotifications());
+      };
+
+      socket.on("new_notification", handleLiveNotification);
+      socket.on("notification", handleLiveNotification);
+
+      return () => {
+        socket.off("new_notification", handleLiveNotification);
+        socket.off("notification", handleLiveNotification);
+      };
+    }
+  }, [dispatch]);
 
   //people search
 
@@ -163,6 +310,11 @@ export default function Navbar() {
 
   const handleSearch = (event) => {
     event.preventDefault();
+    if (searchQuery.trim()) {
+      saveSearchToHistory(searchQuery);
+      setIsSearchFocused(false);
+      router.push(`/dashboard/explore?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
   };
 
   const handleSearchQueryChange = (event) => {
@@ -182,6 +334,15 @@ export default function Navbar() {
     }
 
     setIsNotificationsOpen(false);
+    if (
+      ["new_message", "missed_call"].includes(notification.type) &&
+      notification.conversationId
+    ) {
+      router.push(
+        `/dashboard/messages?conversation=${notification.conversationId}`
+      );
+      return;
+    }
     if (
       ["post_liked", "post_commented"].includes(notification.type) &&
       notification.postId
@@ -223,7 +384,7 @@ export default function Navbar() {
           <span className={styles.brandName}>Ripple</span>
         </Link>
 
-        <form className={styles.search} role="search" onSubmit={handleSearch}>
+        <form className={styles.search} role="search" onSubmit={handleSearch} ref={searchContainerRef}>
           <SearchIcon />
           <label className={styles.srOnly} htmlFor="dashboard-search">
             Search Ripple
@@ -233,8 +394,86 @@ export default function Navbar() {
             type="search"
             placeholder="Search people, posts..."
             value={searchQuery}
+            onFocus={() => setIsSearchFocused(true)}
             onChange={handleSearchQueryChange}
           />
+          {/* Recent Searches Dropdown */}
+          {isSearchFocused && searchQuery.trim().length < 2 && searchHistory.length > 0 && (
+            <div className={styles.searchDropdown}>
+              <div className={styles.recentHeader}>
+                <strong>Recent Searches</strong>
+                <button type="button" className={styles.clearHistoryBtn} onClick={clearHistory}>
+                  Clear all
+                </button>
+              </div>
+              {searchHistory.map((item, idx) => {
+                const isProfile = typeof item === "object" && item.username;
+                if (isProfile) {
+                  const hasPicture = item.profilePicture && item.profilePicture !== "default.jpg";
+                  const personInitials = item.name
+                    ?.split(" ")
+                    .map((part) => part[0])
+                    .slice(0, 2)
+                    .join("")
+                    .toUpperCase() || "R";
+
+                  return (
+                    <div
+                      key={item._id || item.username || idx}
+                      className={styles.searchResult}
+                      onClick={() => {
+                        setIsSearchFocused(false);
+                        setSearchQuery("");
+                        router.push(`/${item.username}`);
+                      }}
+                    >
+                      <span className={styles.searchAvatar}>
+                        {hasPicture ? (
+                          <img src={item.profilePicture} alt="" />
+                        ) : (
+                          personInitials
+                        )}
+                      </span>
+                      <span className={styles.searchIdentity}>
+                        <strong>{item.name}</strong>
+                        <small>@{item.username}</small>
+                      </span>
+                      <button
+                        type="button"
+                        className={styles.removeHistoryBtn}
+                        onClick={(e) => removeFromHistory(item, e)}
+                        aria-label={`Remove ${item.name}`}
+                      >
+                        <CloseIcon />
+                      </button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div
+                    key={item || idx}
+                    className={styles.recentItem}
+                    onClick={() => {
+                      setSearchQuery(item);
+                    }}
+                  >
+                    <span className={styles.recentIcon}><ClockIcon /></span>
+                    <span className={styles.recentText}>{item}</span>
+                    <button
+                      type="button"
+                      className={styles.removeHistoryBtn}
+                      onClick={(e) => removeFromHistory(item, e)}
+                      aria-label={`Remove ${item}`}
+                    >
+                      <CloseIcon />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           {searchQuery.trim().length >= 2 && (
             <div className={styles.searchDropdown}>
               {isSearching && <p className={styles.searchStatus}>Searching...</p>}
@@ -255,8 +494,10 @@ export default function Navbar() {
                     className={styles.searchResult}
                     href={`/${person.username}`}
                     onClick={() => {
+                      saveProfileToHistory(person);
                       setSearchQuery("");
                       setSearchResults([]);
+                      setIsSearchFocused(false);
                     }}
                   >
                     <span className={styles.searchAvatar}>
@@ -301,11 +542,27 @@ export default function Navbar() {
           </Link>
 
           <Link
+            href="/dashboard/explore"
+            className={`${styles.navLink} ${router.pathname === "/dashboard/explore" ? styles.active : ""}`}
+          >
+            <CompassIcon />
+            <span>Explore</span>
+          </Link>
+
+          <Link
             href="/dashboard/connections"
             className={`${styles.navLink} ${router.pathname === "/dashboard/connections" ? styles.active : ""}`}
           >
             <NetworkIcon />
             <span>Network</span>
+          </Link>
+
+          <Link
+            href="/dashboard/saved"
+            className={`${styles.navLink} ${router.pathname === "/dashboard/saved" ? styles.active : ""}`}
+          >
+            <BookmarkNavIcon />
+            <span>Saved</span>
           </Link>
 
           <div className={styles.notificationMenu} ref={notificationRef}>
@@ -391,6 +648,8 @@ export default function Navbar() {
                       connection_accepted: "accepted your connection request.",
                       post_liked: "liked your post.",
                       post_commented: "commented on your post.",
+                      new_message: "sent you a message.",
+                      missed_call: "tried to call you.",
                     }[notification.type] || "interacted with you.";
                     const isAccepting =
                       acceptingRequestId === notification.connectionId;

@@ -1,5 +1,6 @@
 import CreatePost from "@/components/dashboard/CreatePost";
 import PostCard from "@/components/dashboard/PostCard";
+import StoriesBar from "@/components/dashboard/StoriesBar";
 import styles from "./Feed.module.css";
 import { useSelector } from "react-redux";
 
@@ -14,6 +15,7 @@ const Feed = ({ posts }) => {
   return (
     <section className={styles.feed} aria-labelledby="feed-title">
       <h1 className={styles.srOnly} id="feed-title">Home feed</h1>
+      <StoriesBar />
       <CreatePost />
 
       {filteredPosts.length === 0 ? (

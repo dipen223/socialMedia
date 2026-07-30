@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import styles from "@/styles/home.module.css";
 import {useEffect} from "react";
@@ -14,7 +15,7 @@ export default function Home() {
       router.push("/dashboard");
     }
 
-  },[])
+  }, [router])
  
 
   return (
@@ -86,7 +87,16 @@ export default function Home() {
             priority
           />
         </div>
-     </section>
+      </section>
+
+      <footer className={styles.footer}>
+        <span>Ripple</span>
+        <nav aria-label="Legal pages">
+          <Link href="/privacy">Privacy</Link>
+          <Link href="/terms">Terms</Link>
+          <Link href="/data-deletion">Data deletion</Link>
+        </nav>
+      </footer>
     </main>
   );
 }

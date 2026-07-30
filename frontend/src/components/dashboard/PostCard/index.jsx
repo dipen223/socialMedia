@@ -5,6 +5,8 @@ import Link from "next/link";
 import { deletePost, likePost } from "@/config/redux/action/postAction";
 import { createNewComment, getCommentsByPost } from "@/config/redux/action/commentAction";
 import ConnectButton from "@/components/dashboard/ConnectionButton";
+import { clientServer } from "@/config";
+import { getSocket } from "@/config/socket";
 import styles from "./PostCard.module.css";
 
 const LikeIcon = () => (
@@ -22,6 +24,13 @@ const CommentIcon = () => (
 const ShareIcon = () => (
   <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true">
     <path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z" />
+  </svg>
+);
+
+const RoomIcon = () => (
+  <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.7" stroke="currentColor" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 10.5a3.75 3.75 0 1 1 7.5 0v3a3.75 3.75 0 1 1-7.5 0v-3Z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 13.5a6.75 6.75 0 0 0 13.5 0M12 20.25V22m-3 0h6" />
   </svg>
 );
 
@@ -86,6 +95,8 @@ const formatCommentDate = (createdAt) => {
   }).format(createdDate);
 };
 
+const EMPTY_COMMENTS = [];
+
 export default function PostCard({ post, detail = false }) {
   const dispatch = useDispatch();
   const router = useRouter();
@@ -93,18 +104,52 @@ export default function PostCard({ post, detail = false }) {
   const commentsRequestedRef = useRef(false);
   const profile = useSelector((state) => state.auth.user);
   const { deletingPostId, likingPostId } = useSelector((state) => state.posts);
-  const comments = useSelector(
-    (state) => state.comments.commentsByPost[post._id] || []
+  const fetchedComments = useSelector(
+    (state) => state.comments.commentsByPost[post._id]
   );
   const { creatingForPostId, fetchedPostIds, loadingForPostId } = useSelector((state) => state.comments);
+  const comments = fetchedComments || EMPTY_COMMENTS;
+  const commentCount = (fetchedPostIds[post._id] || fetchedComments)
+    ? comments.length
+    : (post.commentCount || 0);
   const currentUser = profile?.userId || profile;
+  const initialSaved = Array.isArray(post.savedBy)
+    ? post.savedBy.some((id) => (typeof id === "object" ? id._id?.toString() : id?.toString()) === currentUser?._id?.toString())
+    : false;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
+  const [isSaved, setIsSaved] = useState(initialSaved);
+  const [isSaving, setIsSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [removedReason, setRemovedReason] = useState("");
   const [notice, setNotice] = useState("");
   const [showComments, setShowComments] = useState(detail);
   const [commentText, setCommentText] = useState("");
+
+  useEffect(() => {
+    if (Array.isArray(post.savedBy)) {
+      setIsSaved(post.savedBy.some((id) => (typeof id === "object" ? id._id?.toString() : id?.toString()) === currentUser?._id?.toString()));
+    }
+  }, [post.savedBy, currentUser]);
+
+  const handleBookmark = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+    const prevSaved = isSaved;
+    setIsSaved(!prevSaved);
+
+    try {
+      const res = await clientServer.patch(`/post/${post._id}/bookmark`);
+      if (res.data?.saved !== undefined) {
+        setIsSaved(res.data.saved);
+      }
+    } catch {
+      setIsSaved(prevSaved);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+  const [liveDiscussion, setLiveDiscussion] = useState(post.liveDiscussion || null);
+  const [startingDiscussion, setStartingDiscussion] = useState(false);
   const author = post.userId;
   const hasPicture = author?.profilePicture && author.profilePicture !== "default.jpg";
   const initials = author?.name?.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase() || "S";
@@ -148,6 +193,29 @@ export default function PostCard({ post, detail = false }) {
       dispatch(getCommentsByPost(post._id));
     }
   }, [detail, dispatch, fetchedPostIds, post._id]);
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return undefined;
+    const handleStarted = ({ postId, roomId }) => {
+      if (postId === post._id) {
+        setLiveDiscussion((current) => current || {
+          _id: roomId,
+          title: "Live post discussion",
+          participantCount: 0,
+        });
+      }
+    };
+    const handleClosed = ({ postId }) => {
+      if (postId === post._id) setLiveDiscussion(null);
+    };
+    socket.on("discussion:started", handleStarted);
+    socket.on("discussion:closed", handleClosed);
+    return () => {
+      socket.off("discussion:started", handleStarted);
+      socket.off("discussion:closed", handleClosed);
+    };
+  }, [post._id]);
 
   const closeAfter = (callback) => {
     callback();
@@ -202,6 +270,28 @@ export default function PostCard({ post, detail = false }) {
       await dispatch(likePost(post._id)).unwrap();
     } catch (error) {
       setNotice(error || "Could not update like.");
+    }
+  };
+
+  const openDiscussion = async () => {
+    if (liveDiscussion?._id) {
+      router.push(`/dashboard/discussions/${liveDiscussion._id}`);
+      return;
+    }
+    if (!isOwner || startingDiscussion) return;
+
+    setStartingDiscussion(true);
+    try {
+      const response = await clientServer.post(
+        `/posts/${post._id}/discussion-room`,
+        {}
+      );
+      setLiveDiscussion(response.data.room);
+      router.push(`/dashboard/discussions/${response.data.room._id}`);
+    } catch (error) {
+      setNotice(error.response?.data?.message || "Could not start the discussion.");
+    } finally {
+      setStartingDiscussion(false);
     }
   };
 
@@ -281,7 +371,7 @@ export default function PostCard({ post, detail = false }) {
                 </div>
               ) : (
                 <>
-                  <button role="menuitem" type="button" onClick={() => closeAfter(() => setIsSaved((saved) => !saved))}>
+                  <button role="menuitem" type="button" onClick={() => closeAfter(handleBookmark)}>
                     <span className={styles.menuIcon}><SaveIcon /></span>
                     <strong>{isSaved ? "Unsave" : "Save"}</strong>
                   </button>
@@ -327,6 +417,31 @@ export default function PostCard({ post, detail = false }) {
       )}
 
       <footer className={styles.footer}>
+        {(liveDiscussion || isOwner) && (
+          <button
+            className={`${styles.discussionCta} ${liveDiscussion ? styles.discussionLive : ""}`}
+            type="button"
+            onClick={openDiscussion}
+            disabled={startingDiscussion}
+          >
+            <span className={styles.discussionIcon}><RoomIcon /></span>
+            <span className={styles.discussionCopy}>
+              <strong>
+                {liveDiscussion
+                  ? liveDiscussion.title || "Live post discussion"
+                  : "Start a live discussion"}
+              </strong>
+              <small>
+                {liveDiscussion
+                  ? `${liveDiscussion.participantCount || 0} listening now`
+                  : "Open an audio room around this post"}
+              </small>
+            </span>
+            <span className={styles.discussionAction}>
+              {startingDiscussion ? "Starting…" : liveDiscussion ? "Join room" : "Go live"}
+            </span>
+          </button>
+        )}
         <div className={styles.actionBar}>
           <button
             className={isLiked ? styles.activeAction : ""}
@@ -341,11 +456,11 @@ export default function PostCard({ post, detail = false }) {
           </button>
           <button
             type="button"
-            aria-label={`Open comments. ${comments.length} ${comments.length === 1 ? "comment" : "comments"}`}
+            aria-label={`Open comments. ${commentCount} ${commentCount === 1 ? "comment" : "comments"}`}
             aria-expanded={showComments}
             onClick={toggleComments}
           >
-            <CommentIcon /> <span>{comments.length}</span>
+            <CommentIcon /> <span>{commentCount}</span>
           </button>
           <button type="button" onClick={sharePost}>
             <ShareIcon /> Share

@@ -1,0 +1,65 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 800px;
+  margin: 0 auto;
+  padding-bottom: 50px;
+}
+
+.heroHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 32px;
+  border-radius: 20px;
+  background: radial-gradient(circle at 90% 10%, rgba(52, 211, 153, 0.25) 0%, transparent 50%),
+              linear-gradient(135deg, #0f271d 0%, #081610 100%);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+  color: #fff;
+}
+
+.heroHeader h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.heroHeader p {
+  margin: 0;
+  font-size: 14px;
+  color: #a3b8ac;
+}
+
+.feedList {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.emptyState {
+  padding: 60px 20px;
+  text-align: center;
+  background: #fff;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #64748b;
+}
+
+.emptyIcon {
+  width: 48px;
+  height: 48px;
+  color: #10b981;
+}
+
+.emptyState strong {
+  font-size: 18px;
+  color: #0f172a;
+}

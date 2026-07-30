@@ -42,6 +42,18 @@
 .media { display: block; width: 100%; max-height: 560px; object-fit: contain; }
 .aiMediaLabel { position: absolute; right: 10px; bottom: 10px; padding: 5px 8px; border-radius: 999px; background: rgba(30, 27, 60, .82); color: #fff; font-size: 10px; font-weight: 750; backdrop-filter: blur(5px); }
 .footer { border-top: 1px solid #e7ece9; }
+.discussionCta { display: flex; width: calc(100% - 24px); min-height: 70px; align-items: center; gap: 11px; margin: 12px; padding: 10px 12px; border: 1px solid #dce8e0; border-radius: 14px; background: linear-gradient(135deg, #f7fbf8, #edf5f0); color: #1e3429; cursor: pointer; text-align: left; }
+.discussionCta:hover { border-color: #a8cdbb; box-shadow: 0 8px 24px rgba(31,107,79,.08); transform: translateY(-1px); }
+.discussionCta:disabled { opacity: .65; cursor: wait; transform: none; }
+.discussionLive { border-color: #b9ddcb; background: linear-gradient(135deg, #f2fbf6, #e4f3ea); }
+.discussionIcon { display: grid; width: 42px; height: 42px; flex: 0 0 42px; place-items: center; border-radius: 13px; background: #fff; color: #1f7654; box-shadow: 0 4px 14px rgba(31,107,79,.1); }
+.discussionIcon svg { width: 22px; height: 22px; }
+.discussionCopy { display: grid; min-width: 0; flex: 1; gap: 3px; }
+.discussionCopy strong { overflow: hidden; color: #1d3027; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.discussionCopy small { color: #73847b; font-size: 10px; }
+.discussionLive .discussionCopy strong::before { display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: #e84d4d; box-shadow: 0 0 0 4px rgba(232,77,77,.11); content: ""; animation: livePulse 1.8s infinite; }
+.discussionAction { flex: 0 0 auto; padding: 8px 11px; border-radius: 999px; background: #1f6b4f; color: #fff; font-size: 10px; font-weight: 800; }
+@keyframes livePulse { 50% { opacity: .45; } }
 .actionBar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 6px 12px; border-top: 1px solid #edf1ee; }
 .actionBar button { display: inline-flex; min-height: 38px; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 9px; background: transparent; color: #607068; cursor: pointer; font: 700 12px inherit; }
 .actionBar button:hover { background: #edf5ef; color: #1f6b4f; }

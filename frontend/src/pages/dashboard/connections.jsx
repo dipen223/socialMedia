@@ -1,4 +1,6 @@
+import { useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { useDispatch, useSelector } from "react-redux";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import {
@@ -11,8 +13,7 @@ import styles from "@/styles/connectionsPage.module.css";
 
 const UserAvatar = ({ user }) => {
   const hasPicture =
-    user?.profilePicture &&
-    user.profilePicture !== "default.jpg";
+    user?.profilePicture && user.profilePicture !== "default.jpg";
   const initials =
     user?.name
       ?.split(" ")
@@ -24,7 +25,7 @@ const UserAvatar = ({ user }) => {
   return (
     <span className={styles.avatar}>
       {hasPicture ? (
-        <img src={user.profilePicture} alt="" />
+        <img src={user.profilePicture} alt={user.name || "User"} />
       ) : (
         initials
       )}
@@ -34,6 +35,8 @@ const UserAvatar = ({ user }) => {
 
 export default function ConnectionsPage() {
   const dispatch = useDispatch();
+  const router = useRouter();
+
   const {
     receivedRequests,
     connections,
@@ -44,28 +47,40 @@ export default function ConnectionsPage() {
     error,
   } = useSelector((state) => state.connections);
 
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+
+    dispatch(getReceivedRequests());
+    dispatch(getMyConnections());
+  }, [dispatch, router]);
+
   const handleAccept = async (requestId) => {
     try {
-      await dispatch(
-        acceptConnectionRequest(requestId)
-      ).unwrap();
+      await dispatch(acceptConnectionRequest(requestId)).unwrap();
       await dispatch(getMyConnections());
-    } catch {
-      // Redux stores and displays the user-facing error.
+    } catch (err) {
+      console.error("Failed to accept connection request:", err);
     }
   };
 
   const handleDelete = async (requestId) => {
     try {
-      await dispatch(
-        deleteConnectionRequest(requestId)
-      ).unwrap();
-    } catch {
-      // Redux stores and displays the user-facing error.
+      await dispatch(deleteConnectionRequest(requestId)).unwrap();
+    } catch (err) {
+      console.error("Failed to delete connection request:", err);
     }
   };
 
   const retryLoading = () => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (!token) {
+      router.push("/login");
+      return;
+    }
     dispatch(getReceivedRequests());
     dispatch(getMyConnections());
   };
@@ -75,20 +90,21 @@ export default function ConnectionsPage() {
       <div className={styles.page}>
         <header className={styles.pageHeader}>
           <div className={styles.heroCopy}>
-            <p className={styles.eyebrow}>My network</p>
-            <h1>Connections</h1>
+            <p className={styles.eyebrow}>Network Hub</p>
+            <h1>My Network</h1>
             <span>
-              Review requests and keep up with people in your network.
+              Manage connection requests, expand your network, and engage with professionals.
             </span>
           </div>
+
           <div className={styles.networkStats} aria-label="Network summary">
-            <div>
+            <div className={styles.statCard}>
               <strong>{receivedRequests.length}</strong>
               <span>Pending</span>
             </div>
-            <div>
+            <div className={styles.statCard}>
               <strong>{connections.length}</strong>
-              <span>Connected</span>
+              <span>Connections</span>
             </div>
           </div>
         </header>
@@ -97,20 +113,21 @@ export default function ConnectionsPage() {
           <div className={`${styles.status} ${styles.error}`} role="alert">
             <p>{error}</p>
             <button type="button" onClick={retryLoading}>
-              Try again
+              Retry Connection
             </button>
           </div>
         )}
 
+        {/* Pending Connection Requests */}
         <section className={styles.section} aria-labelledby="requests-title">
           <header className={styles.sectionHeader}>
             <div className={styles.sectionTitle}>
               <span className={styles.sectionIcon} aria-hidden="true">
-                +
+                👥
               </span>
               <div>
-                <h2 id="requests-title">Connection requests</h2>
-                <p>People who would like to connect with you.</p>
+                <h2 id="requests-title">Pending Invitations</h2>
+                <p>People requesting to connect with you.</p>
               </div>
             </div>
             {receivedRequests.length > 0 && (
@@ -120,14 +137,15 @@ export default function ConnectionsPage() {
 
           {isLoadingReceived && receivedRequests.length === 0 && (
             <div className={styles.status} role="status">
-              Loading connection requests...
+              Loading invitations...
             </div>
           )}
 
           {!isLoadingReceived && receivedRequests.length === 0 && (
             <div className={styles.empty}>
-              <h3>No pending requests</h3>
-              <p>New connection requests will appear here.</p>
+              <div className={styles.emptyIcon}>📬</div>
+              <h3>No pending invitations</h3>
+              <p>When someone invites you to connect, their request will show up here.</p>
             </div>
           )}
 
@@ -135,25 +153,20 @@ export default function ConnectionsPage() {
             <ul className={styles.list}>
               {receivedRequests.map((request) => {
                 const requester = request.requesterId;
-                const isAccepting =
-                  acceptingRequestId === request._id;
-                const isDeleting =
-                  deletingRequestId === request._id;
+                const isAccepting = acceptingRequestId === request._id;
+                const isDeleting = deletingRequestId === request._id;
                 const isUpdating = isAccepting || isDeleting;
 
                 if (!requester) return null;
 
                 return (
                   <li className={styles.requestCard} key={request._id}>
-                    <Link
-                      className={styles.person}
-                      href={`/${requester.username}`}
-                    >
+                    <Link className={styles.person} href={`/${requester.username}`}>
                       <UserAvatar user={requester} />
                       <span className={styles.identity}>
                         <strong>{requester.name}</strong>
                         <small>@{requester.username}</small>
-                        <em>Wants to join your network</em>
+                        <em>Wants to join your professional network</em>
                       </span>
                     </Link>
 
@@ -164,7 +177,7 @@ export default function ConnectionsPage() {
                         disabled={isUpdating}
                         onClick={() => handleAccept(request._id)}
                       >
-                        {isAccepting ? "Confirming..." : "Confirm"}
+                        {isAccepting ? "Accepting..." : "Accept"}
                       </button>
                       <button
                         className={styles.deleteButton}
@@ -172,7 +185,7 @@ export default function ConnectionsPage() {
                         disabled={isUpdating}
                         onClick={() => handleDelete(request._id)}
                       >
-                        {isDeleting ? "Deleting..." : "Delete"}
+                        {isDeleting ? "Declining..." : "Ignore"}
                       </button>
                     </div>
                   </li>
@@ -182,30 +195,37 @@ export default function ConnectionsPage() {
           )}
         </section>
 
+        {/* Your Network Connections */}
         <section className={styles.section} aria-labelledby="connections-title">
           <header className={styles.sectionHeader}>
             <div className={styles.sectionTitle}>
               <span className={styles.sectionIcon} aria-hidden="true">
-                ✓
+                🌐
               </span>
               <div>
-                <h2 id="connections-title">Your connections</h2>
-                <p>People currently in your network.</p>
+                <h2 id="connections-title">Your Connections</h2>
+                <p>People currently in your network ({connections.length}).</p>
               </div>
             </div>
+            <Link href="/dashboard/discover" className={styles.discoverBtn}>
+              Find People +
+            </Link>
           </header>
 
           {isLoadingConnections && connections.length === 0 && (
             <div className={styles.status} role="status">
-              Loading connections...
+              Loading your connections...
             </div>
           )}
 
           {!isLoadingConnections && connections.length === 0 && (
             <div className={styles.empty}>
-              <h3>Your network is ready to grow</h3>
-              <p>Accepted connections will appear here.</p>
-              <Link href="/dashboard/discover">Discover people</Link>
+              <div className={styles.emptyIcon}>🚀</div>
+              <h3>Expand Your Network</h3>
+              <p>Connect with colleagues, creators, and professionals to build your community.</p>
+              <Link href="/dashboard/discover" className={styles.ctaBtn}>
+                Explore People & Connections →
+              </Link>
             </div>
           )}
 
@@ -216,15 +236,15 @@ export default function ConnectionsPage() {
                 if (!person) return null;
 
                 return (
-                  <li key={connection.connectionId}>
-                    <Link href={`/${person.username}`}>
+                  <li key={connection.connectionId || person._id}>
+                    <Link href={`/${person.username}`} className={styles.connectionCard}>
                       <UserAvatar user={person} />
                       <span className={styles.identity}>
                         <strong>{person.name}</strong>
                         <small>@{person.username}</small>
                       </span>
                       <span className={styles.viewProfile}>
-                        View <span aria-hidden="true">→</span>
+                        View Profile →
                       </span>
                     </Link>
                   </li>
