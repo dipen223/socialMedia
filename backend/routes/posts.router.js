@@ -21,7 +21,9 @@ postsRouter.patch(
     auth,
     postsController.bookmarkPost
 );
-
+postsRouter.put("/post/:postId/face-reaction", auth, postsController.reactWithFace);
+postsRouter.delete("/post/:postId/face-reaction", auth, postsController.removeFaceReaction);
+postsRouter.get("/post/:postId/reactions",auth,postsController.getPostReactions);
 
 
 export default postsRouter;

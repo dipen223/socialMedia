@@ -54,12 +54,13 @@
 .discussionLive .discussionCopy strong::before { display: inline-block; width: 7px; height: 7px; margin-right: 7px; border-radius: 50%; background: #e84d4d; box-shadow: 0 0 0 4px rgba(232,77,77,.11); content: ""; animation: livePulse 1.8s infinite; }
 .discussionAction { flex: 0 0 auto; padding: 8px 11px; border-radius: 999px; background: #1f6b4f; color: #fff; font-size: 10px; font-weight: 800; }
 @keyframes livePulse { 50% { opacity: .45; } }
-.actionBar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 6px 12px; border-top: 1px solid #edf1ee; }
-.actionBar button { display: inline-flex; min-height: 38px; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 9px; background: transparent; color: #607068; cursor: pointer; font: 700 12px inherit; }
-.actionBar button:hover { background: #edf5ef; color: #1f6b4f; }
-.actionBar button:disabled { opacity: .65; cursor: default; }
-.actionBar button > span { font-size: 18px; line-height: 1; }
-.actionBar button > svg { width: 19px; height: 19px; flex: 0 0 19px; }
+.engagementBar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 12px; border-top: 1px solid #edf1ee; }
+.actionBar { display: flex; align-items: center; gap: 4px; }
+.actionBar > button { display: inline-flex; min-width: 42px; min-height: 38px; padding: 0 9px; align-items: center; justify-content: center; gap: 6px; border: 0; border-radius: 9px; background: transparent; color: #607068; cursor: pointer; font: 700 12px inherit; }
+.actionBar > button:hover { background: #edf5ef; color: #1f6b4f; }
+.actionBar > button:disabled { opacity: .65; cursor: default; }
+.actionBar > button > span { font-size: 12px; line-height: 1; }
+.actionBar > button > svg { width: 19px; height: 19px; flex: 0 0 19px; }
 .actionBar .activeAction { background: #e9f3ed; color: #1f6b4f; }
 .commentPanel { padding: 14px 20px 18px; border-top: 1px solid #edf1ee; background: #fbfcfb; }
 .commentList { display: grid; gap: 12px; margin: 0 0 14px; padding: 0; list-style: none; }
@@ -77,4 +78,36 @@
 .commentForm button { min-height: 36px; padding: 0 11px; border: 0; border-radius: 999px; background: #1f6b4f; color: #fff; cursor: pointer; font: 750 11px inherit; }
 .commentForm button:disabled { opacity: .45; cursor: not-allowed; }
 .srOnly { position: absolute; overflow: hidden; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; clip: rect(0, 0, 0, 0); white-space: nowrap; }
-@media (max-width: 520px) { .card { border-radius: 12px; } .header { padding: 16px 16px 0; } .body { margin: 15px 16px 16px; } .commentPanel { padding: 13px 14px 16px; } .actionBar button { gap: 5px; font-size: 11px; } }
+@media (max-width: 520px) { .card { border-radius: 12px; } .header { padding: 16px 16px 0; } .body { margin: 15px 16px 16px; } .commentPanel { padding: 13px 14px 16px; } .engagementBar { gap: 6px; padding-inline: 8px; } .actionBar { gap: 1px; } .actionBar > button { min-width: 36px; padding-inline: 6px; gap: 4px; font-size: 11px; } .faceReactionSummary { gap: 5px; font-size: .75rem; } .faceReactionChip { padding: 3px; } .faceReactionChip > span { display: none; } .faceReactionChip:nth-child(n+2) { display: none; } }
+.faceReactionSummary {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #667085;
+  font-size: .82rem;
+  cursor: pointer;
+}
+.faceReactionSummary:hover .faceReactionChip { border-color: #a8cdbb; background: #edf5ef; }
+.likesPreview { display: inline-flex; align-items: center; gap: 5px; padding: 6px 9px; border-radius: 9px; background: #f3f8f5; color: #1f6b4f; font-size: 11px; font-weight: 800; }
+.likesPreview svg { width: 16px; height: 16px; }
+
+.faceReactionChips {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.faceReactionChip { display: inline-flex; max-width: 110px; align-items: center; gap: 5px; padding: 3px 7px 3px 3px; border: 1px solid #dce8e0; border-radius: 999px; background: #f5faf7; color: #365347; font-size: 11px; font-weight: 700; }
+.faceReactionChip img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #eef2f6;
+}
+.faceReactionChip > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.moreReactions { display: grid; min-width: 28px; height: 28px; place-items: center; border-radius: 999px; background: #edf5ef; color: #1f6b4f; font-size: 10px; font-weight: 800; }

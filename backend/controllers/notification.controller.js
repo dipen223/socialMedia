@@ -7,6 +7,7 @@ const getNotifications = async (req, res) => {
             recipientId: req.user.id
         })
             .populate("actorId", "name username profilePicture")
+            .populate("faceReactionId", "name imageUrl")
             .sort({ createdAt: -1 })
             .lean();
 
@@ -41,7 +42,9 @@ const markNotificationRead = async (req, res) => {
             {
                 new: true
             }
-        ).populate("actorId", "name username profilePicture");
+        )
+            .populate("actorId", "name username profilePicture")
+            .populate("faceReactionId", "name imageUrl");
 
         if (!notification) {
             return res.status(404).json({ message: "Notification not found." });

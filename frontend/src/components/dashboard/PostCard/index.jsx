@@ -5,6 +5,8 @@ import Link from "next/link";
 import { deletePost, likePost } from "@/config/redux/action/postAction";
 import { createNewComment, getCommentsByPost } from "@/config/redux/action/commentAction";
 import ConnectButton from "@/components/dashboard/ConnectionButton";
+import FaceReactionPicker from "@/components/dashboard/FaceReactionPicker";
+import ReactionDetails from "@/components/dashboard/ReactionDetails";
 import { clientServer } from "@/config";
 import { getSocket } from "@/config/socket";
 import styles from "./PostCard.module.css";
@@ -124,6 +126,8 @@ export default function PostCard({ post, detail = false }) {
   const [notice, setNotice] = useState("");
   const [showComments, setShowComments] = useState(detail);
   const [commentText, setCommentText] = useState("");
+  const [faceReactions, setFaceReactions] = useState(post.faceReactions || []);
+  const [showReactionDetails, setShowReactionDetails] = useState(false);
 
   useEffect(() => {
     if (Array.isArray(post.savedBy)) {
@@ -159,6 +163,9 @@ export default function PostCard({ post, detail = false }) {
     (userId) => userId.toString() === currentUser?._id?.toString()
   ) || false;
   const likeCount = post.likedBy?.length || 0;
+  const currentFaceReaction = faceReactions.find(
+    (reaction) => (reaction.userId?._id || reaction.userId)?.toString() === currentUser?._id?.toString()
+  );
   const isLiking = likingPostId === post._id;
   const isDeleting = deletingPostId === post._id;
   const isCreatingComment = creatingForPostId === post._id;
@@ -442,30 +449,64 @@ export default function PostCard({ post, detail = false }) {
             </span>
           </button>
         )}
-        <div className={styles.actionBar}>
-          <button
-            className={isLiked ? styles.activeAction : ""}
-            type="button"
-            aria-label={`${isLiked ? "Unlike" : "Like"} post. ${likeCount} ${likeCount === 1 ? "like" : "likes"}`}
-            aria-pressed={isLiked}
-            aria-busy={isLiking}
-            disabled={isLiking}
-            onClick={handleLike}
-          >
-            <LikeIcon /> <span>{likeCount}</span>
-          </button>
-          <button
-            type="button"
-            aria-label={`Open comments. ${commentCount} ${commentCount === 1 ? "comment" : "comments"}`}
-            aria-expanded={showComments}
-            onClick={toggleComments}
-          >
-            <CommentIcon /> <span>{commentCount}</span>
-          </button>
-          <button type="button" onClick={sharePost}>
-            <ShareIcon /> Share
-          </button>
+        <div className={styles.engagementBar}>
+          <div className={styles.actionBar}>
+            <button
+              className={isLiked ? styles.activeAction : ""}
+              type="button"
+              aria-label={`${isLiked ? "Unlike" : "Like"} post. ${likeCount} ${likeCount === 1 ? "like" : "likes"}`}
+              aria-pressed={isLiked}
+              aria-busy={isLiking}
+              disabled={isLiking}
+              onClick={handleLike}
+            >
+              <LikeIcon /><span>{likeCount}</span>
+            </button>
+            <FaceReactionPicker
+              postId={post._id}
+              currentReaction={currentFaceReaction}
+              reactionCount={faceReactions.length}
+              onChange={setFaceReactions}
+            />
+            <button
+              type="button"
+              aria-label={`Open comments. ${commentCount} ${commentCount === 1 ? "comment" : "comments"}`}
+              aria-expanded={showComments}
+              onClick={toggleComments}
+            >
+              <CommentIcon /><span>{commentCount}</span>
+            </button>
+            <button type="button" onClick={sharePost} aria-label="Share post">
+              <ShareIcon />
+            </button>
+          </div>
+          {(likeCount > 0 || faceReactions.length > 0) && (
+            <button className={styles.faceReactionSummary} type="button" onClick={() => setShowReactionDetails(true)} aria-label="View everyone who reacted">
+              {faceReactions.length === 0 && <span className={styles.likesPreview}><LikeIcon />{likeCount}</span>}
+              <span className={styles.faceReactionChips}>
+                {faceReactions.slice(0, 2).map((reaction) => (
+                  reaction.reactionId?.imageUrl && (
+                    <span
+                      className={styles.faceReactionChip}
+                      key={reaction._id || `${reaction.userId?._id || reaction.userId}-${reaction.reactionId._id}`}
+                      title={`${reaction.userId?.name || "Ripple member"}: ${reaction.reactionId.name}`}
+                    >
+                      <img src={reaction.reactionId.imageUrl} alt="" />
+                      <span>{reaction.reactionId.name}</span>
+                    </span>
+                  )
+                ))}
+                {faceReactions.length > 2 && <span className={styles.moreReactions}>+{faceReactions.length - 2}</span>}
+              </span>
+            </button>
+          )}
         </div>
+
+        <ReactionDetails
+          postId={post._id}
+          open={showReactionDetails}
+          onClose={() => setShowReactionDetails(false)}
+        />
 
         {showComments && (
           <div className={styles.commentPanel}>

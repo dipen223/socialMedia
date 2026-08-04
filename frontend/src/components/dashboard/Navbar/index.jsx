@@ -344,7 +344,7 @@ export default function Navbar() {
       return;
     }
     if (
-      ["post_liked", "post_commented"].includes(notification.type) &&
+      ["post_liked", "post_face_reacted", "post_commented"].includes(notification.type) &&
       notification.postId
     ) {
       router.push(`/dashboard/posts/${notification.postId}`);
@@ -647,6 +647,7 @@ export default function Navbar() {
                       connection_request: "sent you a connection request.",
                       connection_accepted: "accepted your connection request.",
                       post_liked: "liked your post.",
+                      post_face_reacted: `reacted with “${notification.faceReactionId?.name || "a FaceMoji"}”.`,
                       post_commented: "commented on your post.",
                       new_message: "sent you a message.",
                       missed_call: "tried to call you.",
@@ -675,6 +676,9 @@ export default function Navbar() {
                               actorInitials
                             )}
                           </span>
+                          {notification.type === "post_face_reacted" && notification.faceReactionId?.imageUrl && (
+                            <img className={styles.notificationReaction} src={notification.faceReactionId.imageUrl} alt={notification.faceReactionId.name || "FaceMoji"} />
+                          )}
                           <span className={styles.notificationCopy}>
                             <span>
                               <strong>{actor?.name || "Someone"}</strong>{" "}

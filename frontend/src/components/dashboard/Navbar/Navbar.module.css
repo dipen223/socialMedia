@@ -450,6 +450,16 @@
   object-fit: cover;
 }
 
+.notificationReaction {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px #d7e6dc;
+}
+
 .notificationCopy {
   display: grid;
   min-width: 0;

@@ -6,6 +6,7 @@ import Comment from "../models/comments.model.js";
 import Notification from "../models/notification.model.js";
 import DiscussionRoom from "../models/discussionRoom.model.js";
 import { randomUUID } from "crypto";
+import FaceReaction from "../models/faceReaction.model.js";
 
 const MEDIA_LIMITS = {
     image: 10 * 1024 * 1024,
@@ -114,6 +115,8 @@ const getAllPosts = async (req, res) => {
         const posts = await Post.find({ active: true })
             .sort({ createdAt: -1 })
             .populate("userId", "name username email profilePicture")
+            .populate("faceReactions.userId", "name username")
+            .populate("faceReactions.reactionId", "name imageUrl ownerId active")
             .lean();
 
         const postIds = posts.map((post) => post._id);
@@ -261,6 +264,97 @@ const likePost = async (req, res) => {
         return res.status(500).json({
             message: "Server error!"
         });
+    }
+};
+
+const reactWithFace = async (req, res) => {
+    const { postId } = req.params;
+    const userId = req.user.id;
+    const { reactionId } = req.body;
+
+    try {
+        const [post, reaction] = await Promise.all([
+            Post.findOne({ _id: postId, active: true }),
+            FaceReaction.findOne({ _id: reactionId, ownerId: userId, active: true })
+        ]);
+
+        if (!post) {
+            return res.status(404).json({ message: "Post not found!" });
+        }
+        if (!reaction) {
+            return res.status(404).json({ message: "Choose a face reaction from your library." });
+        }
+
+        post.faceReactions = post.faceReactions.filter(
+            (item) => item.userId.toString() !== userId.toString()
+        );
+        post.faceReactions.push({ userId, reactionId: reaction._id });
+        await post.save();
+
+        if (post.userId.toString() !== userId.toString()) {
+            await Notification.findOneAndUpdate(
+                {
+                    recipientId: post.userId,
+                    actorId: userId,
+                    type: "post_face_reacted",
+                    postId: post._id
+                },
+                {
+                    $set: { faceReactionId: reaction._id, readAt: null },
+                    $setOnInsert: {
+                        recipientId: post.userId,
+                        actorId: userId,
+                        type: "post_face_reacted",
+                        postId: post._id
+                    }
+                },
+                { upsert: true }
+            );
+        }
+
+        await post.populate("faceReactions.userId", "name username");
+        await post.populate("faceReactions.reactionId", "name imageUrl ownerId active");
+
+        return res.status(200).json({
+            message: "Face reaction added.",
+            faceReactions: post.faceReactions
+        });
+    } catch (error) {
+        console.error("Error adding face reaction:", error.message);
+        return res.status(500).json({ message: "Could not add face reaction." });
+    }
+};
+
+const removeFaceReaction = async (req, res) => {
+    const { postId } = req.params;
+    const userId = req.user.id;
+
+    try {
+        const post = await Post.findOne({ _id: postId, active: true });
+        if (!post) {
+            return res.status(404).json({ message: "Post not found!" });
+        }
+
+        post.faceReactions = post.faceReactions.filter(
+            (item) => item.userId.toString() !== userId.toString()
+        );
+        await post.save();
+        await Notification.deleteOne({
+            recipientId: post.userId,
+            actorId: userId,
+            type: "post_face_reacted",
+            postId: post._id
+        });
+        await post.populate("faceReactions.userId", "name username");
+        await post.populate("faceReactions.reactionId", "name imageUrl ownerId active");
+
+        return res.status(200).json({
+            message: "Face reaction removed.",
+            faceReactions: post.faceReactions
+        });
+    } catch (error) {
+        console.error("Error removing face reaction:", error.message);
+        return res.status(500).json({ message: "Could not remove face reaction." });
     }
 };
 
@@ -446,4 +540,53 @@ const getSavedPosts = async (req, res) => {
     }
 };
 
-export default { createPost, getAllPosts, getUploadSignature, deletePost, likePost, getTrendingHashtags, getPostsByHashtag, bookmarkPost, getSavedPosts };
+const getPostReactions = async (req, res) => {
+    const { postId } = req.params;
+
+    if (!mongoose.isValidObjectId(postId)) {
+        return res.status(400).json({ message: "Invalid post." });
+    }
+
+    try {
+        const post = await Post.findOne({
+            _id: postId,
+            active: true
+        })
+            .populate("likedBy", "name username profilePicture")
+            .populate("faceReactions.userId", "name username profilePicture")
+            .populate("faceReactions.reactionId", "name imageUrl");
+
+        if (!post) {
+            return res.status(404).json({ message: "Post not found." });
+        }
+
+        const likes = post.likedBy.map((user) => ({
+            type: "like",
+            user,
+            reaction: null
+        }));
+
+        const faceReactions = post.faceReactions
+            .filter((item) => item.userId && item.reactionId)
+            .map((item) => ({
+                type: "facemoji",
+                user: item.userId,
+                reaction: item.reactionId,
+                createdAt: item.createdAt
+            }));
+
+        const reactions = [...likes, ...faceReactions];
+
+        return res.status(200).json({
+            count: reactions.length,
+            reactions
+        });
+    } catch (err) {
+        console.error("Error getting post reactions:", err.message);
+        return res.status(500).json({ message: "Could not retrieve post reactions." });
+    }
+
+
+};
+
+export default { createPost, getAllPosts, getUploadSignature, deletePost, likePost, reactWithFace, removeFaceReaction, getTrendingHashtags, getPostsByHashtag, bookmarkPost, getSavedPosts,getPostReactions };

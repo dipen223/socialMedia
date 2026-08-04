@@ -10,6 +10,7 @@ import messageRouter from "./message.router.js";
 import callRouter from "./call.router.js";
 import discussionRoomRouter from "./discussionRoom.router.js";
 import storyRouter from "./story.router.js";
+import faceReactionRouter from "./faceReaction.router.js";
 
 const router = express.Router();
 
@@ -23,6 +24,7 @@ router.use(conversationRouter);
 router.use(messageRouter);
 router.use(callRouter);
 router.use(discussionRoomRouter);
+router.use(faceReactionRouter);
 router.use("/api/stories", storyRouter);
 
 

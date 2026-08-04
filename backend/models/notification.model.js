@@ -18,6 +18,7 @@ const notificationSchema = new Schema({
             "connection_request",
             "connection_accepted",
             "post_liked",
+            "post_face_reacted",
             "post_commented",
             "new_message",
             "missed_call",
@@ -32,6 +33,11 @@ const notificationSchema = new Schema({
     postId: {
         type: Schema.Types.ObjectId,
         ref: "Post",
+        default: null,
+    },
+    faceReactionId: {
+        type: Schema.Types.ObjectId,
+        ref: "FaceReaction",
         default: null,
     },
     commentId: {
@@ -63,6 +69,13 @@ notificationSchema.index(
     {
         unique: true,
         partialFilterExpression: { type: "post_liked" },
+    }
+);
+notificationSchema.index(
+    { recipientId: 1, actorId: 1, type: 1, postId: 1 },
+    {
+        unique: true,
+        partialFilterExpression: { type: "post_face_reacted" },
     }
 );
 notificationSchema.index(

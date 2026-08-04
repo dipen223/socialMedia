@@ -17,6 +17,24 @@ const postSchema = new Schema({
             ref: "User"
         }
     ],
+    faceReactions: [
+        {
+            userId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+                required: true
+            },
+            reactionId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "FaceReaction",
+                required: true
+            },
+            createdAt: {
+                type: Date,
+                default: Date.now
+            }
+        }
+    ],
     savedBy: [
         {
             type: mongoose.Schema.Types.ObjectId,
