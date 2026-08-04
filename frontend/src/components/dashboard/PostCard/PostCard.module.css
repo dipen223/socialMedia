@@ -38,6 +38,14 @@
 .removedNotice { display: flex; min-height: 64px; align-items: center; justify-content: space-between; padding: 0 18px; border: 1px solid #dfe8e2; border-radius: 14px; background: #f7f9f7; color: #607068; font-size: 13px; }
 .removedNotice button { border: 0; background: transparent; color: #1f6b4f; cursor: pointer; font-weight: 800; }
 .body { margin: 17px 20px 18px; color: #28372f; font-size: 15px; line-height: 1.65; overflow-wrap: anywhere; white-space: pre-wrap; }
+.editPost { display: grid; gap: 9px; margin: 17px 20px 18px; }
+.editPost textarea { width: 100%; min-height: 120px; resize: vertical; padding: 12px 13px; border: 1px solid #b9cfc1; border-radius: 12px; outline: 0; color: #28372f; font: 15px/1.55 inherit; }
+.editPost textarea:focus { border-color: #1f6b4f; box-shadow: 0 0 0 3px rgba(31, 107, 79, .1); }
+.editPost > div { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.editPost > div > span { margin-right: auto; color: #89958e; font-size: 10px; }
+.editPost button { min-height: 34px; padding: 0 11px; border: 1px solid #d6e2da; border-radius: 9px; background: #fff; color: #526159; cursor: pointer; font-weight: 750; }
+.editPost button[type="submit"] { border-color: #1f6b4f; background: #1f6b4f; color: #fff; }
+.editPost button:disabled { cursor: not-allowed; opacity: .55; }
 .mediaWrap { position: relative; overflow: hidden; width: 100%; max-height: 560px; background: #eef2ef; }
 .media { display: block; width: 100%; max-height: 560px; object-fit: contain; }
 .aiMediaLabel { position: absolute; right: 10px; bottom: 10px; padding: 5px 8px; border-radius: 999px; background: rgba(30, 27, 60, .82); color: #fff; font-size: 10px; font-weight: 750; backdrop-filter: blur(5px); }

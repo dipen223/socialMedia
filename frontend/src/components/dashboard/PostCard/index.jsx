@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { deletePost, likePost } from "@/config/redux/action/postAction";
+import { deletePost, likePost, updatePost } from "@/config/redux/action/postAction";
 import { createNewComment, getCommentsByPost } from "@/config/redux/action/commentAction";
 import ConnectButton from "@/components/dashboard/ConnectionButton";
 import FaceReactionPicker from "@/components/dashboard/FaceReactionPicker";
@@ -57,6 +57,12 @@ const DeleteIcon = () => (
   </svg>
 );
 
+const EditIcon = () => (
+  <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true">
+    <path strokeLinecap="round" strokeLinejoin="round" d="m16.86 4.49 1.69-1.69a1.875 1.875 0 1 1 2.65 2.65L10.58 16.07a4.5 4.5 0 0 1-1.9 1.13l-2.68.8.8-2.68a4.5 4.5 0 0 1 1.13-1.9L16.86 4.49Zm0 0L19.5 7.13M18 14v4.75A2.25 2.25 0 0 1 15.75 21h-10.5A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+  </svg>
+);
+
 const HideIcon = () => (
   <svg fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" aria-hidden="true">
     <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.52 10.52 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243" />
@@ -105,7 +111,7 @@ export default function PostCard({ post, detail = false }) {
   const menuRef = useRef(null);
   const commentsRequestedRef = useRef(false);
   const profile = useSelector((state) => state.auth.user);
-  const { deletingPostId, likingPostId } = useSelector((state) => state.posts);
+  const { deletingPostId, likingPostId, updatingPostId } = useSelector((state) => state.posts);
   const fetchedComments = useSelector(
     (state) => state.comments.commentsByPost[post._id]
   );
@@ -128,12 +134,8 @@ export default function PostCard({ post, detail = false }) {
   const [commentText, setCommentText] = useState("");
   const [faceReactions, setFaceReactions] = useState(post.faceReactions || []);
   const [showReactionDetails, setShowReactionDetails] = useState(false);
-
-  useEffect(() => {
-    if (Array.isArray(post.savedBy)) {
-      setIsSaved(post.savedBy.some((id) => (typeof id === "object" ? id._id?.toString() : id?.toString()) === currentUser?._id?.toString()));
-    }
-  }, [post.savedBy, currentUser]);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(post.body || "");
 
   const handleBookmark = async () => {
     if (isSaving) return;
@@ -168,6 +170,7 @@ export default function PostCard({ post, detail = false }) {
   );
   const isLiking = likingPostId === post._id;
   const isDeleting = deletingPostId === post._id;
+  const isUpdating = updatingPostId === post._id;
   const isCreatingComment = creatingForPostId === post._id;
   const isLoadingComments = loadingForPostId === post._id;
   const currentUserInitial = currentUser?.name?.[0]?.toUpperCase() || "Y";
@@ -321,6 +324,31 @@ export default function PostCard({ post, detail = false }) {
     }
   };
 
+  const beginEditing = () => {
+    setEditText(post.body || "");
+    setIsEditing(true);
+    setIsMenuOpen(false);
+  };
+
+  const cancelEditing = () => {
+    setEditText(post.body || "");
+    setIsEditing(false);
+  };
+
+  const handleEdit = async (event) => {
+    event.preventDefault();
+    const body = editText.trim();
+    if (!body || body === post.body || isUpdating) return;
+
+    try {
+      await dispatch(updatePost({ postId: post._id, body })).unwrap();
+      setIsEditing(false);
+      setNotice("Post updated.");
+    } catch (error) {
+      setNotice(error || "Could not update this post.");
+    }
+  };
+
   return (
     <article className={styles.card} id={`post-${post._id}`}>
       <header className={styles.header}>
@@ -341,7 +369,7 @@ export default function PostCard({ post, detail = false }) {
           ) : (
             <><strong>{author?.name || "Ripple member"}</strong><span>@member</span></>
           )}
-          <small>{formatPostDate(post.createdAt)} · Public</small>
+          <small>{formatPostDate(post.createdAt)} · Public{post.editedAt ? " · Edited" : ""}</small>
         </div>
 
         {detail && !isOwner && (
@@ -384,10 +412,16 @@ export default function PostCard({ post, detail = false }) {
                   </button>
 
                   {isOwner ? (
-                    <button className={styles.dangerOption} role="menuitem" type="button" onClick={() => setShowDeleteConfirm(true)}>
-                      <span className={styles.menuIcon}><DeleteIcon /></span>
-                      <strong>Delete</strong>
-                    </button>
+                    <>
+                      <button role="menuitem" type="button" onClick={beginEditing}>
+                        <span className={styles.menuIcon}><EditIcon /></span>
+                        <strong>Edit post</strong>
+                      </button>
+                      <button className={styles.dangerOption} role="menuitem" type="button" onClick={() => setShowDeleteConfirm(true)}>
+                        <span className={styles.menuIcon}><DeleteIcon /></span>
+                        <strong>Delete</strong>
+                      </button>
+                    </>
                   ) : (
                     <>
                       <button role="menuitem" type="button" onClick={() => closeAfter(() => setRemovedReason("Post hidden from this view."))}>
@@ -410,7 +444,21 @@ export default function PostCard({ post, detail = false }) {
 
       {notice && <div className={styles.inlineNotice} role="status">{notice}<button type="button" onClick={() => setNotice("")}>×</button></div>}
 
-      <p className={styles.body}>{post.body}</p>
+      {isEditing ? (
+        <form className={styles.editPost} onSubmit={handleEdit}>
+          <label className={styles.srOnly} htmlFor={`edit-post-${post._id}`}>Edit post text</label>
+          <textarea id={`edit-post-${post._id}`} value={editText} onChange={(event) => setEditText(event.target.value)} maxLength={2000} autoFocus />
+          <div>
+            <span>{editText.length}/2000</span>
+            <button type="button" disabled={isUpdating} onClick={cancelEditing}>Cancel</button>
+            <button type="submit" disabled={!editText.trim() || editText.trim() === post.body || isUpdating}>
+              {isUpdating ? "Saving…" : "Save changes"}
+            </button>
+          </div>
+        </form>
+      ) : (
+        <p className={styles.body}>{post.body}</p>
+      )}
 
       {post.media && (
         <div className={styles.mediaWrap}>

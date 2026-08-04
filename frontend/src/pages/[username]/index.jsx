@@ -110,7 +110,7 @@ export default function UsernameProfilePage() {
                 </div>
                 {isOwnProfile ? (
                   <Link href="/dashboard/profile" className={styles.editBtn}>
-                    ✏️ Edit Profile
+                    Edit Profile
                   </Link>
                 ) : (
                   <div className={styles.profileActions}>

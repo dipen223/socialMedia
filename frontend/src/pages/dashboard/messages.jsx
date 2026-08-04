@@ -486,7 +486,7 @@ export default function MessagesPage() {
     <DashboardLayout wide>
       <section
         className={`${styles.messenger} ${
-          activeConversation ? styles.hasActiveConversation : ""
+          activeConversation ? styles.hasActiveConversation : styles.railOnly
         }`}
       >
         <aside className={styles.conversationRail}>
@@ -1029,24 +1029,7 @@ export default function MessagesPage() {
               )}
             </footer>
           </section>
-        ) : (
-          <section className={styles.emptyChat}>
-            <div>
-              <span className={styles.emptyMark}>R</span>
-              <strong>Your conversations, in one place</strong>
-              <p>
-                Choose a conversation, share what matters, and turn it into a
-                live Ripple when you are ready.
-              </p>
-              <button
-                type="button"
-                onClick={() => router.push("/dashboard/discover")}
-              >
-                Start a conversation
-              </button>
-            </div>
-          </section>
-        )}
+        ) : null}
       </section>
     </DashboardLayout>
   );

@@ -93,6 +93,20 @@ export const deletePost = createAsyncThunk("post/deletePost",
     }
 );
 
+export const updatePost = createAsyncThunk(
+    "post/updatePost",
+    async ({ postId, body }, thunkAPI) => {
+        try {
+            const response = await clientServer.patch(`/post/${postId}`, { body });
+            return { postId, post: response.data.post };
+        } catch (err) {
+            return thunkAPI.rejectWithValue(
+                err.response?.data?.message || err.message || "Failed to update post"
+            );
+        }
+    }
+);
+
 
 export const likePost = createAsyncThunk("post/likePost",
     async (postId, thunkAPI) => {

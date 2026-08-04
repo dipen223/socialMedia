@@ -11,6 +11,11 @@
   box-shadow: 0 22px 65px rgba(23, 37, 30, 0.1);
 }
 
+.railOnly {
+  width: min(420px, 100%);
+  grid-template-columns: minmax(270px, 420px);
+}
+
 .conversationRail {
   display: flex;
   min-width: 0;

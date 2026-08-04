@@ -90,11 +90,8 @@ export default function ConnectionsPage() {
       <div className={styles.page}>
         <header className={styles.pageHeader}>
           <div className={styles.heroCopy}>
-            <p className={styles.eyebrow}>Network Hub</p>
-            <h1>My Network</h1>
-            <span>
-              Manage connection requests, expand your network, and engage with professionals.
-            </span>
+            <h1>Connections</h1>
+            <span>Manage requests and people you’ve connected with.</span>
           </div>
 
           <div className={styles.networkStats} aria-label="Network summary">
@@ -113,21 +110,17 @@ export default function ConnectionsPage() {
           <div className={`${styles.status} ${styles.error}`} role="alert">
             <p>{error}</p>
             <button type="button" onClick={retryLoading}>
-              Retry Connection
+              Try again
             </button>
           </div>
         )}
 
-        {/* Pending Connection Requests */}
         <section className={styles.section} aria-labelledby="requests-title">
           <header className={styles.sectionHeader}>
             <div className={styles.sectionTitle}>
-              <span className={styles.sectionIcon} aria-hidden="true">
-                👥
-              </span>
               <div>
-                <h2 id="requests-title">Pending Invitations</h2>
-                <p>People requesting to connect with you.</p>
+                <h2 id="requests-title">Requests</h2>
+                <p>People who want to connect with you.</p>
               </div>
             </div>
             {receivedRequests.length > 0 && (
@@ -137,15 +130,14 @@ export default function ConnectionsPage() {
 
           {isLoadingReceived && receivedRequests.length === 0 && (
             <div className={styles.status} role="status">
-              Loading invitations...
+              Loading requests...
             </div>
           )}
 
           {!isLoadingReceived && receivedRequests.length === 0 && (
             <div className={styles.empty}>
-              <div className={styles.emptyIcon}>📬</div>
-              <h3>No pending invitations</h3>
-              <p>When someone invites you to connect, their request will show up here.</p>
+              <h3>No requests</h3>
+              <p>New connection requests will appear here.</p>
             </div>
           )}
 
@@ -166,7 +158,6 @@ export default function ConnectionsPage() {
                       <span className={styles.identity}>
                         <strong>{requester.name}</strong>
                         <small>@{requester.username}</small>
-                        <em>Wants to join your professional network</em>
                       </span>
                     </Link>
 
@@ -185,7 +176,7 @@ export default function ConnectionsPage() {
                         disabled={isUpdating}
                         onClick={() => handleDelete(request._id)}
                       >
-                        {isDeleting ? "Declining..." : "Ignore"}
+                        {isDeleting ? "Declining..." : "Decline"}
                       </button>
                     </div>
                   </li>
@@ -195,20 +186,16 @@ export default function ConnectionsPage() {
           )}
         </section>
 
-        {/* Your Network Connections */}
         <section className={styles.section} aria-labelledby="connections-title">
           <header className={styles.sectionHeader}>
             <div className={styles.sectionTitle}>
-              <span className={styles.sectionIcon} aria-hidden="true">
-                🌐
-              </span>
               <div>
-                <h2 id="connections-title">Your Connections</h2>
-                <p>People currently in your network ({connections.length}).</p>
+                <h2 id="connections-title">Your connections</h2>
+                <p>{connections.length} {connections.length === 1 ? "person" : "people"}</p>
               </div>
             </div>
             <Link href="/dashboard/discover" className={styles.discoverBtn}>
-              Find People +
+              Find people
             </Link>
           </header>
 
@@ -220,11 +207,10 @@ export default function ConnectionsPage() {
 
           {!isLoadingConnections && connections.length === 0 && (
             <div className={styles.empty}>
-              <div className={styles.emptyIcon}>🚀</div>
-              <h3>Expand Your Network</h3>
-              <p>Connect with colleagues, creators, and professionals to build your community.</p>
+              <h3>No connections yet</h3>
+              <p>Find people you know or want to follow.</p>
               <Link href="/dashboard/discover" className={styles.ctaBtn}>
-                Explore People & Connections →
+                Find people
               </Link>
             </div>
           )}
@@ -244,7 +230,7 @@ export default function ConnectionsPage() {
                         <small>@{person.username}</small>
                       </span>
                       <span className={styles.viewProfile}>
-                        View Profile →
+                        View profile
                       </span>
                     </Link>
                   </li>

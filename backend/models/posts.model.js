@@ -8,7 +8,9 @@ const postSchema = new Schema({
     },
     body: {
         type: String,
-        required: true
+        required: true,
+        trim: true,
+        maxlength: 2000
 
     },
     likedBy: [
@@ -67,6 +69,10 @@ const postSchema = new Schema({
     aiGenerated: {
         type: Boolean,
         default: false
+    },
+    editedAt: {
+        type: Date,
+        default: null
     }
 
 }, {

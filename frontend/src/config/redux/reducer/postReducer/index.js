@@ -1,5 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
-import { createNewPost, getAllPosts, deletePost, likePost } from "../../action/postAction";
+import { createNewPost, getAllPosts, deletePost, updatePost, likePost } from "../../action/postAction";
 
 const initialState = {
     posts: [],
@@ -13,6 +13,8 @@ const initialState = {
     uploadProgress: 0,
     deletingPostId: null,
     deleteError: "",
+    updatingPostId: null,
+    updateError: "",
     likingPostId: null,
     likeError: "",
 
@@ -40,7 +42,7 @@ const postSlice = createSlice({
                 state.isLoading = false;
                 state.isError = false;
                 state.postFetched = true;
-                state.posts = action.payload.posts.reverse()
+                state.posts = action.payload.posts
             })
             .addCase(getAllPosts.rejected, (state, action) => {
                 state.isLoading = false;
@@ -77,6 +79,23 @@ const postSlice = createSlice({
                 state.deletingPostId = null;
                 state.deleteError =
                     action.payload || "Failed to delete post";
+            })
+            .addCase(updatePost.pending, (state, action) => {
+                state.updatingPostId = action.meta.arg.postId;
+                state.updateError = "";
+            })
+            .addCase(updatePost.fulfilled, (state, action) => {
+                state.updatingPostId = null;
+                const post = state.posts.find((item) => item._id === action.payload.postId);
+                if (post) {
+                    post.body = action.payload.post.body;
+                    post.editedAt = action.payload.post.editedAt;
+                    post.updatedAt = action.payload.post.updatedAt;
+                }
+            })
+            .addCase(updatePost.rejected, (state, action) => {
+                state.updatingPostId = null;
+                state.updateError = action.payload || "Failed to update post";
             }).addCase(likePost.pending, (state, action) => {
                 state.likingPostId = action.meta.arg;
                 state.likeError = "";
