@@ -3,7 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import mongoose from "mongoose";
-import router from "../backend/routes/main.router.js";
+import router from "./routes/main.router.js";
 import {createServer} from "node:http";
 import {Server} from "socket.io";
 import jwt from "jsonwebtoken";
