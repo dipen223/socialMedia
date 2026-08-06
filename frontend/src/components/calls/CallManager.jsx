@@ -779,7 +779,7 @@ export default function CallManager() {
             )}
           </span>
           <div className={styles.identity}>
-            <strong>{call.peer?.name || "Ripple member"}</strong>
+            <strong>{call.peer?.name || "SocialHub member"}</strong>
             <p>
               {statusText}
               {call.status === "active" ? ` · ${duration}` : ""}

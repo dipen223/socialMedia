@@ -88,25 +88,21 @@ export default function Navbar() {
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
-  const [searchHistory, setSearchHistory] = useState([]);
+  const [searchHistory, setSearchHistory] = useState(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const saved = localStorage.getItem("ripple_search_history");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   const menuRef = useRef(null);
   const notificationRef = useRef(null);
   const searchContainerRef = useRef(null);
   const profile = useSelector((state) => state.auth.user);
-
-  // Load search history from localStorage on mount
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("ripple_search_history");
-      if (saved) {
-        setSearchHistory(JSON.parse(saved));
-      }
-    } catch {
-      // Ignore storage errors
-    }
-  }, []);
 
   const saveProfileToHistory = (person) => {
     if (!person) return;
@@ -379,15 +375,15 @@ export default function Navbar() {
   return (
     <header className={styles.header}>
       <nav className={styles.nav} aria-label="Main navigation">
-        <Link href="/dashboard" className={styles.brand} aria-label="Ripple home">
+        <Link href="/dashboard" className={styles.brand} aria-label="SocialHub home">
           <span className={styles.brandMark}>S</span>
-          <span className={styles.brandName}>Ripple</span>
+          <span className={styles.brandName}>SocialHub</span>
         </Link>
 
         <form className={styles.search} role="search" onSubmit={handleSearch} ref={searchContainerRef}>
           <SearchIcon />
           <label className={styles.srOnly} htmlFor="dashboard-search">
-            Search Ripple
+            Search SocialHub
           </label>
           <input
             id="dashboard-search"

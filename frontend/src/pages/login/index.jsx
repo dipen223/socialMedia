@@ -39,13 +39,13 @@ export default function Login() {
   return (
     <main className={styles.page}>
       <Link href="/" className={styles.brand}>
-        <span>R</span> Ripple
+        <span>S</span> SocialHub
       </Link>
 
       <section className={styles.card}>
         <div className={styles.heading}>
           <p>Welcome back</p>
-          <h1>Log in to Ripple</h1>
+          <h1>Log in to SocialHub</h1>
           <span>Continue connecting with the people who matter.</span>
         </div>
 
@@ -91,7 +91,7 @@ export default function Login() {
         </form>
 
         <p className={styles.switchText}>
-          New to Ripple? <Link href="/signup">Create an account</Link>
+          New to SocialHub? <Link href="/signup">Create an account</Link>
         </p>
       </section>
 

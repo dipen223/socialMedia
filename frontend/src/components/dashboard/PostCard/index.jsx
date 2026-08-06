@@ -264,7 +264,7 @@ export default function PostCard({ post, detail = false }) {
 
     try {
       if (navigator.share) {
-        await navigator.share({ title: "Ripple post", text: post.body, url });
+        await navigator.share({ title: "SocialHub post", text: post.body, url });
         return;
       }
 
@@ -363,11 +363,11 @@ export default function PostCard({ post, detail = false }) {
         <div className={styles.authorDetails}>
           {authorHref ? (
             <Link href={authorHref}>
-              <strong>{author?.name || "Ripple member"}</strong>
+              <strong>{author?.name || "SocialHub member"}</strong>
               <span>@{author.username}</span>
             </Link>
           ) : (
-            <><strong>{author?.name || "Ripple member"}</strong><span>@member</span></>
+            <><strong>{author?.name || "SocialHub member"}</strong><span>@member</span></>
           )}
           <small>{formatPostDate(post.createdAt)} · Public{post.editedAt ? " · Edited" : ""}</small>
         </div>
@@ -537,7 +537,7 @@ export default function PostCard({ post, detail = false }) {
                     <span
                       className={styles.faceReactionChip}
                       key={reaction._id || `${reaction.userId?._id || reaction.userId}-${reaction.reactionId._id}`}
-                      title={`${reaction.userId?.name || "Ripple member"}: ${reaction.reactionId.name}`}
+                      title={`${reaction.userId?.name || "SocialHub member"}: ${reaction.reactionId.name}`}
                     >
                       <img src={reaction.reactionId.imageUrl} alt="" />
                       <span>{reaction.reactionId.name}</span>
@@ -572,9 +572,9 @@ export default function PostCard({ post, detail = false }) {
                     )}
                     <div>
                       {comment.userId?.username ? (
-                        <Link className={styles.commentAuthor} href={`/${comment.userId.username}`}>{comment.userId.name || "Ripple member"}</Link>
+                        <Link className={styles.commentAuthor} href={`/${comment.userId.username}`}>{comment.userId.name || "SocialHub member"}</Link>
                       ) : (
-                        <strong>{comment.userId?.name || "Ripple member"}</strong>
+                        <strong>{comment.userId?.name || "SocialHub member"}</strong>
                       )}
                       <p>{comment.body}</p>
                       <small>{formatCommentDate(comment.createdAt)}</small>

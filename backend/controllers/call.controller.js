@@ -144,11 +144,11 @@ const createCallSummary = async (req, res) => {
         console.error("Call summary generation failed:", error.message);
         message.call.summary.status = "failed";
         message.call.summary.error =
-            "Ripple could not summarize this call.";
+            "SocialHub could not summarize this call.";
         await message.save().catch(() => {});
         await emitUpdatedMessage(req, message).catch(() => {});
         return res.status(500).json({
-            message: "Ripple could not summarize this call.",
+            message: "SocialHub could not summarize this call.",
         });
     }
 };

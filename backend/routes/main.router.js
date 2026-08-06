@@ -28,7 +28,7 @@ router.use(faceReactionRouter);
 router.use("/api/stories", storyRouter);
 
 
-router.get("/",(req,res)=> {res.send("Welcome to Ripple!")});
+router.get("/",(req,res)=> {res.send("Welcome to SocialHub!")});
 
 
 

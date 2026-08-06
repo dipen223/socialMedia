@@ -52,7 +52,7 @@ export default function SuggestedProfiles() {
       {!isLoading && !isError && discoverProfiles.length === 0 && (
         <div className={styles.status}>
           <h2>No new people right now</h2>
-          <p>Check back later as the Ripple community grows.</p>
+          <p>Check back later as the SocialHub community grows.</p>
         </div>
       )}
 
@@ -74,7 +74,7 @@ export default function SuggestedProfiles() {
                     <p>@{user.username}</p>
                   </Link>
                 </div>
-                <p className={styles.bio}>{profile.bio || "New to Ripple."}</p>
+                <p className={styles.bio}>{profile.bio || "New to SocialHub."}</p>
 
                 {profile.interests?.length > 0 && (
                   <ul className={styles.interests} aria-label="Interests">

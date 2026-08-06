@@ -536,7 +536,7 @@ export default function MessagesPage() {
             {visibleConversations.map((conversation) => {
               const partner =
                 getConversationPartner(conversation, currentUserId) || {
-                  name: "Ripple member",
+                  name: "SocialHub member",
                   username: "member",
                   profilePicture: null,
                 };
@@ -620,7 +620,7 @@ export default function MessagesPage() {
               </button>
               <Avatar person={activePartner} className={styles.headerAvatar} />
               <div className={styles.chatIdentity}>
-                <strong>{activePartner?.name || "Ripple member"}</strong>
+                <strong>{activePartner?.name || "SocialHub member"}</strong>
                 <span>
                   <i
                     className={`${styles.inlinePresence} ${
@@ -675,7 +675,7 @@ export default function MessagesPage() {
                     className={styles.beginningAvatar}
                   />
                   <strong>
-                    Start a ripple with {activePartner?.name || "this member"}
+                    Start a call with {activePartner?.name || "this member"}
                   </strong>
                   <span>
                     This is the beginning of your private conversation.
@@ -857,7 +857,7 @@ export default function MessagesPage() {
                                 {message.call.summary.status === "failed" && (
                                   <p>
                                     {message.call.summary.error ||
-                                      "Ripple could not summarize this call."}
+                                      "SocialHub could not summarize this call."}
                                   </p>
                                 )}
                                 {message.call.summary.status === "ready" && (

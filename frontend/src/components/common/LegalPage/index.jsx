@@ -8,7 +8,7 @@ export default function LegalPage({ title, description, children }) {
   return (
     <>
       <Head>
-        <title>{title} | Ripple</title>
+        <title>{title} | SocialHub</title>
         <meta name="description" content={description} />
       </Head>
 
@@ -16,13 +16,13 @@ export default function LegalPage({ title, description, children }) {
         <header className={styles.header}>
           <Link href="/" className={styles.brand}>
             <span>R</span>
-            Ripple
+            SocialHub
           </Link>
-          <Link href="/" className={styles.backLink}>Back to Ripple</Link>
+          <Link href="/" className={styles.backLink}>Back to SocialHub</Link>
         </header>
 
         <article className={styles.document}>
-          <p className={styles.eyebrow}>Ripple policies</p>
+          <p className={styles.eyebrow}>SocialHub policies</p>
           <h1>{title}</h1>
           <p className={styles.updated}>Effective July 30, 2026</p>
           {children}
@@ -44,7 +44,7 @@ export default function LegalPage({ title, description, children }) {
         </article>
 
         <footer className={styles.footer}>
-          <span>Ripple</span>
+          <span>SocialHub</span>
           <nav aria-label="Legal pages">
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms</Link>

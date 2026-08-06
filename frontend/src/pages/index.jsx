@@ -23,7 +23,7 @@ export default function Home() {
       <nav className={styles.navbar} aria-label="Main navigation">
         <button className={styles.brand} onClick={() => router.push("/")}>
           <span className={styles.logoMark}>S</span>
-          <span>Ripple</span>
+          <span>SocialHub</span>
         </button>
 
         <div className={styles.navActions}>
@@ -49,7 +49,7 @@ export default function Home() {
             </em>
           </h1>
           <p className={styles.heroText}>
-            Ripple brings your favorite people, conversations, and communities together in one
+            SocialHub brings your favorite people, conversations, and communities together in one
             welcoming space.
           </p>
 
@@ -90,7 +90,7 @@ export default function Home() {
       </section>
 
       <footer className={styles.footer}>
-        <span>Ripple</span>
+        <span>SocialHub</span>
         <nav aria-label="Legal pages">
           <Link href="/privacy">Privacy</Link>
           <Link href="/terms">Terms</Link>

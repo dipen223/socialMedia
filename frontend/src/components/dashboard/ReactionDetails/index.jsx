@@ -94,7 +94,7 @@ export default function ReactionDetails({ postId, open, onClose }) {
                                         {hasPicture ? <img src={user.profilePicture} alt="" /> : initials}
                                     </span>
                                     <span className={styles.user}>
-                                        <strong>{user.name || "Ripple member"}</strong>
+                                        <strong>{user.name || "SocialHub member"}</strong>
                                         {user.username && <span>@{user.username}</span>}
                                     </span>
                                     {item.type === "facemoji" && item.reaction ? (

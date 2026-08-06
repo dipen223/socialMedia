@@ -39,7 +39,7 @@ export default function Signup() {
   return (
     <main className={styles.page}>
       <Link href="/" className={styles.brand}>
-        <span>R</span> Ripple
+        <span>S</span> SocialHub
       </Link>
 
       <section className={styles.card}>
@@ -111,7 +111,7 @@ export default function Signup() {
         </form>
 
         <p className={styles.terms}>
-          By creating an account, you agree to be respectful and help keep Ripple welcoming.
+          By creating an account, you agree to be respectful and help keep SocialHub welcoming.
         </p>
 
         <p className={styles.switchText}>

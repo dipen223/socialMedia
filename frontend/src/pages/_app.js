@@ -8,8 +8,8 @@ export default function App({ Component, pageProps }) {
   return (
     <Provider store={store}>
       <Head>
-        <title>Ripple</title>
-        <meta name="description" content="Share ideas, conversations, and moments on Ripple." />
+        <title>SocialHub</title>
+        <meta name="description" content="Share ideas, conversations, and moments on SocialHub." />
       </Head>
       <CallManager />
       <Component {...pageProps} />

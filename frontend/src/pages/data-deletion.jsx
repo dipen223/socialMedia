@@ -6,10 +6,10 @@ export default function DataDeletion() {
   return (
     <LegalPage
       title="Data Deletion"
-      description="How to request deletion of a Ripple account and associated data."
+      description="How to request deletion of a SocialHub account and associated data."
     >
       <p className="lead">
-        You can request deletion of your Ripple account and associated personal
+        You can request deletion of your SocialHub account and associated personal
         information.
       </p>
 
@@ -18,14 +18,14 @@ export default function DataDeletion() {
         {privacyEmail ? (
           <p>
             Email <a href={`mailto:${privacyEmail}`}>{privacyEmail}</a> from the
-            address connected to your Ripple account. Use the subject
-            &quot;Ripple data deletion request&quot; and include your Ripple
+            address connected to your SocialHub account. Use the subject
+            &quot;SocialHub data deletion request&quot; and include your SocialHub
             username.
           </p>
         ) : (
           <p>
             The app operator must configure and publish a monitored deletion
-            request email before Ripple is launched publicly.
+            request email before SocialHub is launched publicly.
           </p>
         )}
       </section>

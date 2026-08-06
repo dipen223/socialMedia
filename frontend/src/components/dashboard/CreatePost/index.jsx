@@ -208,7 +208,7 @@ export default function CreatePost() {
                 <span className={styles.avatar}>
                   {hasPicture ? <img src={user.profilePicture} alt="" /> : initials}
                 </span>
-                <div><strong>{user?.name || "Ripple member"}</strong><span>@{user?.username || "member"}</span></div>
+                <div><strong>{user?.name || "SocialHub member"}</strong><span>@{user?.username || "member"}</span></div>
               </div>
 
               <label className={styles.srOnly} htmlFor="post-body">Post text</label>

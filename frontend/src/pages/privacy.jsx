@@ -5,10 +5,10 @@ export default function PrivacyPolicy() {
   return (
     <LegalPage
       title="Privacy Policy"
-      description="How Ripple collects, uses, and protects personal information."
+      description="How SocialHub collects, uses, and protects personal information."
     >
       <p className="lead">
-        This policy explains how Ripple handles information when you create an
+        This policy explains how SocialHub handles information when you create an
         account or use its social and communication features.
       </p>
 
@@ -20,7 +20,7 @@ export default function PrivacyPolicy() {
           you choose to provide.
         </p>
         <p>
-          We also store content and activity needed to operate Ripple, including
+          We also store content and activity needed to operate SocialHub, including
           posts, comments, messages, connections, saved content, stories,
           notifications, and discussion activity.
         </p>
@@ -39,14 +39,14 @@ export default function PrivacyPolicy() {
       <section>
         <h2>How information is shared</h2>
         <p>
-          Profile information and content are shared with other Ripple users
+          Profile information and content are shared with other SocialHub users
           according to the feature being used. We also use service providers
           that host the application, database, uploaded media, communications,
           and other infrastructure. We do not sell personal information.
         </p>
         <p>
           We may disclose information when required by law or when reasonably
-          necessary to protect Ripple, its users, or the public.
+          necessary to protect SocialHub, its users, or the public.
         </p>
       </section>
 
@@ -66,7 +66,7 @@ export default function PrivacyPolicy() {
           We retain information while an account is active and as needed to
           operate the service, resolve disputes, enforce agreements, and comply
           with legal obligations. You may update available profile information
-          in Ripple and request deletion using our{" "}
+          in SocialHub and request deletion using our{" "}
           <Link href="/data-deletion">data deletion instructions</Link>.
         </p>
       </section>
@@ -74,7 +74,7 @@ export default function PrivacyPolicy() {
       <section>
         <h2>Children</h2>
         <p>
-          Ripple is not directed to children under 13, and we do not knowingly
+          SocialHub is not directed to children under 13, and we do not knowingly
           collect personal information from children under 13.
         </p>
       </section>
@@ -82,7 +82,7 @@ export default function PrivacyPolicy() {
       <section>
         <h2>Changes to this policy</h2>
         <p>
-          We may update this policy as Ripple changes. The effective date above
+          We may update this policy as SocialHub changes. The effective date above
           will be updated when revisions are published.
         </p>
       </section>

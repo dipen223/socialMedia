@@ -14,7 +14,7 @@ const MicIcon = ({ off = false }) => (
   </svg>
 );
 
-const initials = (name = "Ripple member") =>
+const initials = (name = "SocialHub member") =>
   name.split(" ").map((part) => part[0]).slice(0, 2).join("").toUpperCase();
 const QUICK_EMOJIS = ["👏", "❤️", "😂", "🔥", "💯", "🤯", "🙌", "👍", "🎉", "💡", "🤝", "🌊"];
 const formatChatTime = (value) =>
@@ -583,7 +583,7 @@ export default function DiscussionRoomPage() {
                         </span>
                         <div className={styles.chatBubble}>
                           <header>
-                            <strong>{sender.name || "Ripple member"}</strong>
+                            <strong>{sender.name || "SocialHub member"}</strong>
                             <time>{formatChatTime(message.createdAt)}</time>
                             {canDelete && !message.deletedAt && (
                               <button type="button" aria-label="Remove message" onClick={() => deleteChatMessage(message._id)}>•••</button>
