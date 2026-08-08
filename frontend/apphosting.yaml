@@ -1,0 +1,9 @@
+# frontend/apphosting.yaml
+runConfig:
+  cpu: 1
+  memoryMiB: 512
+  maxInstances: 10
+
+env:
+  - variable: NEXT_PUBLIC_API_URL
+    value: "https://my-backend-service-152869075151.us-central1.run.app"
