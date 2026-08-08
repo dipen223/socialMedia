@@ -22,12 +22,28 @@ const MONGO_URI = process.env.MONGO_URI;
 const app = express();
 const httpServer = createServer(app);
 
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://linen-sunbeam-424013-f8.web.app",
+  "https://web-frontend--linen-sunbeam-424013-f8.us-east4.hosted.app",
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like server-to-server or Postman) or allowed origins
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 };
+
+app.use(cors(corsOptions));
 
 const io = new Server(httpServer,{
   cors:{
@@ -38,7 +54,6 @@ const io = new Server(httpServer,{
 });
 app.set("io", io);
 
-app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/",router);
