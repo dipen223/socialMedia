@@ -603,7 +603,7 @@
   gap: 14px;
   padding: 16px;
   border: 1px solid #d4e4da;
-  border-radius: 18px;
+  border-radius: 14px;
   background:
     radial-gradient(circle at 100% 0, rgba(115, 180, 145, 0.2), transparent 34%),
     linear-gradient(145deg, #fbfdfb, #f2f8f4);
@@ -621,7 +621,7 @@
   right: 18px;
   left: 18px;
   height: 2px;
-  border-radius: 0 0 999px 999px;
+  border-radius: 0 0 8px 8px;
   background: linear-gradient(90deg, transparent, #3d9a70, transparent);
   content: "";
 }
@@ -651,7 +651,7 @@
   height: 36px;
   flex: 0 0 36px;
   place-items: center;
-  border-radius: 11px;
+  border-radius: 10px;
   background: linear-gradient(145deg, #1f6b4f, #3e9b70);
   box-shadow: 0 7px 16px rgba(31, 107, 79, 0.2);
   color: #fff;
@@ -740,6 +740,9 @@
 
 .callSummary .summaryOverview {
   gap: 5px;
+  /* border-radius:none; */
+  /* padding:10px;
+   */
 }
 
 .callSummary .summaryOverview > span {
@@ -756,12 +759,13 @@
   color: #294035;
   font-size: 12px;
   line-height: 1.7;
+  padding:7px;
 }
 
 .callSummary .summarySection {
   padding: 11px 12px;
   border: 1px solid rgba(65, 111, 86, 0.12);
-  border-radius: 13px;
+  border-radius: 10px;
   background: rgba(255, 255, 255, 0.72);
 }
 

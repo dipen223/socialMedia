@@ -118,6 +118,9 @@ OPENAI_GRAMMAR_MODEL=model_name
 OPENAI_IMAGE_MODEL=model_name
 OPENAI_TRANSCRIPTION_MODEL=model_name
 OPENAI_CALL_SUMMARY_MODEL=model_name
+OPENAI_TRANSLATION_MODEL=model_name
+OPENAI_TTS_MODEL=model_name
+OPENAI_TTS_VOICE=voice_name
 ```
 
 ### Frontend environment
