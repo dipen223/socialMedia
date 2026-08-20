@@ -1,9 +1,30 @@
 import { randomUUID } from "node:crypto";
 import Conversation from "../models/conversations.model.js";
 import { createCallHistoryMessage } from "../services/message.service.js";
+import {
+    transcribeAudio,
+    translateSpeechText,
+    synthesizeSpeech,
+    SUPPORTED_TRANSLATION_LANGUAGES,
+} from "../services/ai.service.js";
 
 const calls = new Map();
 const RING_TIMEOUT_MS = 45000;
+
+// A silent-but-live 2.5s mic chunk still produces a full-size WebM blob, so
+// this only catches literal empty/near-empty ones before spending an ASR call.
+const MIN_AUDIO_BYTES = 2000;
+// Bounds concurrent OpenAI calls per speaker if chunks back up faster than
+// they're processed (slow network, degraded API) — load-shedding, not a queue.
+const MAX_CONCURRENT_TRANSLATIONS_PER_SPEAKER = 2;
+// Whisper commonly hallucinates one of these short phrases on silence/noise.
+const SILENCE_ARTIFACTS = new Set(["you", "thank you", "thank you.", "thanks for watching", "..."]);
+
+const isMeaningfulTranscript = (text) => {
+    const trimmed = (text || "").trim();
+    if (trimmed.length < 2) return false;
+    return !SILENCE_ARTIFACTS.has(trimmed.toLowerCase());
+};
 
 const emitToCallPeer = (io, socket, call, event, payload) => {
     const targetSocketId =
@@ -71,6 +92,47 @@ const closeCall = async (io, callId, reason, endedBy) => {
         });
 };
 
+const processTranslationChunk = async ({
+    io, socket, call, speakerId, audioBase64, mimeType, targetLang,
+}) => {
+    try {
+        const buffer = Buffer.from(audioBase64, "base64");
+        if (buffer.length < MIN_AUDIO_BYTES) return;
+
+        const { text: originalText, language: detectedLang } = await transcribeAudio({ buffer, mimeType });
+        if (!isMeaningfulTranscript(originalText) || !calls.has(call.callId)) return;
+
+        // The speaker is already talking in the language the listener wants
+        // to hear — nothing to translate, so skip the MT/TTS calls entirely.
+        if (detectedLang && detectedLang === targetLang.split("-")[0]) return;
+
+        const translatedText = await translateSpeechText({ text: originalText, targetLang });
+        if (!translatedText || !calls.has(call.callId)) return;
+
+        let audioUrl;
+        try {
+            const speechBuffer = await synthesizeSpeech({ text: translatedText, language: targetLang });
+            audioUrl = `data:audio/mpeg;base64,${speechBuffer.toString("base64")}`;
+        } catch (ttsError) {
+            // No audio.url -> frontend falls back to browser SpeechSynthesis.
+            console.error(`Translation TTS failed for call ${call.callId}:`, ttsError.message);
+        }
+        if (!calls.has(call.callId)) return;
+
+        emitToCallPeer(io, socket, call, "call:translation-result", {
+            callId: call.callId,
+            originalText,
+            translatedText,
+            sourceLang: detectedLang,
+            targetLang,
+            speakerId,
+            audio: audioUrl ? { url: audioUrl } : undefined,
+        });
+    } catch (error) {
+        console.error(`Translation pipeline failed for call ${call.callId}:`, error.message);
+    }
+};
+
 const registerCallHandlers = ({ io, socket }) => {
     socket.on("call:invite", async (payload = {}, acknowledgement) => {
         const acknowledge =
@@ -85,7 +147,7 @@ const registerCallHandlers = ({ io, socket }) => {
                 type: "direct",
                 members: { $all: [currentUserId, targetUserId] },
             })
-                .populate("members", "name username profilePicture")
+                .populate("members", "name username profilePicture preferredLanguage")
                 .lean();
 
             if (!conversation || targetUserId === currentUserId) {
@@ -120,6 +182,8 @@ const registerCallHandlers = ({ io, socket }) => {
                 status: "ringing",
                 timeoutId: null,
                 summaryConsent: null,
+                languages: {},
+                pendingTranslations: {},
             };
             call.timeoutId = setTimeout(() => {
                 closeCall(io, callId, "missed", null);
@@ -216,6 +280,71 @@ const registerCallHandlers = ({ io, socket }) => {
         emitToCallPeer(io, socket, call, "call:screen-share", {
             callId: call.callId,
             active: Boolean(payload.active),
+        });
+    });
+
+    socket.on("call:set-language", (payload = {}) => {
+        const call = calls.get(payload.callId);
+        if (!call || ![call.callerSocketId, call.calleeSocketId].includes(socket.id)) {
+            return;
+        }
+        const language = SUPPORTED_TRANSLATION_LANGUAGES.has(payload.language)
+            ? payload.language
+            : null;
+        if (!language) return;
+
+        call.languages[socket.user.id.toString()] = language;
+        emitToCallPeer(io, socket, call, "call:peer-language", {
+            callId: call.callId,
+            language,
+        });
+    });
+
+    // A single click enables translation for the whole call: relay the
+    // toggle to the peer so their client starts/stops its own mic capture
+    // too, instead of requiring both participants to opt in separately.
+    socket.on("call:translation-toggle", (payload = {}) => {
+        const call = calls.get(payload.callId);
+        if (!call || ![call.callerSocketId, call.calleeSocketId].includes(socket.id)) {
+            return;
+        }
+        emitToCallPeer(io, socket, call, "call:translation-toggle", {
+            callId: call.callId,
+            enabled: Boolean(payload.enabled),
+        });
+    });
+
+    socket.on("call:translate-speech", (payload = {}) => {
+        const call = calls.get(payload.callId);
+        if (
+            !call ||
+            call.status !== "active" ||
+            ![call.callerSocketId, call.calleeSocketId].includes(socket.id)
+        ) {
+            return;
+        }
+
+        const targetLang = SUPPORTED_TRANSLATION_LANGUAGES.has(payload.targetLang)
+            ? payload.targetLang
+            : null;
+        const audioBase64 = typeof payload.audio === "string" ? payload.audio : null;
+        if (!targetLang || !audioBase64) return;
+
+        const speakerId = socket.user.id.toString();
+        const inFlight = call.pendingTranslations[speakerId] || 0;
+        if (inFlight >= MAX_CONCURRENT_TRANSLATIONS_PER_SPEAKER) return;
+        call.pendingTranslations[speakerId] = inFlight + 1;
+
+        processTranslationChunk({
+            io,
+            socket,
+            call,
+            speakerId,
+            audioBase64,
+            mimeType: typeof payload.mimeType === "string" ? payload.mimeType : "audio/webm",
+            targetLang,
+        }).finally(() => {
+            call.pendingTranslations[speakerId] = Math.max(0, (call.pendingTranslations[speakerId] || 1) - 1);
         });
     });
 

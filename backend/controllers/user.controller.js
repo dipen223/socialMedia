@@ -219,12 +219,12 @@ const uploadCoverPhoto = async (req, res) => {
 
 const updateUserProfile = async (req, res) => {
     const userId = req.user.id;
-    const { name, email, username } = req.body;
+    const { name, email, username, preferredLanguage } = req.body;
     try {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ message: "User not found!" });
 
-        if (!name && !email && !username) {
+        if (!name && !email && !username && !preferredLanguage) {
             return res.status(400).json({ message: "No fields provided to update!" });
         }
 
@@ -248,6 +248,10 @@ const updateUserProfile = async (req, res) => {
             user.name = name;
         }
 
+        if (preferredLanguage) {
+            user.preferredLanguage = preferredLanguage;
+        }
+
         await user.save();
 
         res.json({
@@ -257,6 +261,7 @@ const updateUserProfile = async (req, res) => {
                 name: user.name,
                 username: user.username,
                 email: user.email,
+                preferredLanguage: user.preferredLanguage,
             },
         });
     } catch (err) {
@@ -272,7 +277,7 @@ const getUserProfile = async (req, res) => {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ message: "User not found!" });
 
-        const userProfile = await Profile.findOne({ userId: user._id }).populate("userId", "name username email profilePicture");
+        const userProfile = await Profile.findOne({ userId: user._id }).populate("userId", "name username email profilePicture preferredLanguage");
 
         if (!userProfile) {
             return res.status(404).json({ message: "Profile not found!" });
@@ -284,13 +289,14 @@ const getUserProfile = async (req, res) => {
         console.error("Error fetching user info & profile!", err.message);
         res.status(500).send("Server error!");
     }
-
-
 };
 
 const updateProfileData = async (req, res) => {
     const userId = req.user.id;
-    const { ...newProfileData } = req.body;
+    // Whitelisted explicitly — spreading req.body directly onto the document
+    // let a client overwrite fields like `userId`, reassigning the profile
+    // to a different account.
+    const { bio, interests, currentPost } = req.body;
 
     try {
         const user = await User.findById(userId);
@@ -299,7 +305,9 @@ const updateProfileData = async (req, res) => {
         }
 
         const profileToUpdate = await Profile.findOne({ userId });
-        Object.assign(profileToUpdate, newProfileData);
+        if (bio !== undefined) profileToUpdate.bio = bio;
+        if (interests !== undefined) profileToUpdate.interests = interests;
+        if (currentPost !== undefined) profileToUpdate.currentPost = currentPost;
 
         await profileToUpdate.save();
 
@@ -328,7 +336,9 @@ const getAllUserProfile = async (req, res) => {
     }
 };
 const downloadProfile = async (req, res) => {
-    const userId = req.query.id;
+    // Always the caller's own data — never trust a client-supplied id here,
+    // this endpoint is a self-service data export, not a lookup of others.
+    const userId = req.user.id;
 
     try {
         const userProfile = await Profile.findOne({ userId }).populate(

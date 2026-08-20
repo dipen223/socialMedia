@@ -70,7 +70,7 @@ const createDirectConversation = async (req, res) => {
                 upsert: true,
                 setDefaultsOnInsert: true,
             }
-        ).populate("members", "name username profilePicture");
+        ).populate("members", "name username profilePicture preferredLanguage");
         return res.status(200).json({
             conversation,
         });
@@ -90,7 +90,7 @@ const getMyConversations = async (req, res) => {
         const conversations = await Conversation.find({
             members: currentUserId,
         })
-            .populate("members", "name username profilePicture")
+            .populate("members", "name username profilePicture preferredLanguage")
             .populate({
                 path: "lastMessageId",
                 select:

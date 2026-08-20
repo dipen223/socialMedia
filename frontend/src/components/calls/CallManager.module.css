@@ -288,6 +288,57 @@
   background: #c8453e;
 }
 
+.translationActive svg {
+  background: #dcece2;
+  color: #176342;
+}
+
+.translationStatus {
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(18, 32, 24, 0.96);
+  color: #8fb8a3;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.liveDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2b9568;
+  box-shadow: 0 0 0 4px rgba(43, 149, 104, 0.18);
+}
+
+.translationBar {
+  z-index: 2;
+  display: grid;
+  gap: 3px;
+  padding: 10px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(15, 28, 21, 0.97);
+}
+
+.translationLabel {
+  color: #8fb8a3;
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+}
+
+.translationBar p {
+  margin: 0;
+  color: #f2f7f4;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.45;
+}
+
 .accept,
 .decline {
   display: flex;

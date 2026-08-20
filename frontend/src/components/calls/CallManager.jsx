@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSelector } from "react-redux";
 import { getSocket } from "@/config/socket";
 import { clientServer } from "@/config";
+import { LANGUAGES, displayForDetectedLanguage } from "@/config/languages";
 import styles from "./CallManager.module.css";
 
 const FALLBACK_ICE_SERVERS = [
@@ -10,6 +12,13 @@ const FALLBACK_ICE_SERVERS = [
       "stun:stun.l.google.com:19302",
   },
 ];
+
+const TranslateIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M4 5h7M7.5 3v2M6 5c.5 3 2.2 5.3 4.5 7M13 5c-.6 3.3-2.4 5.9-5 7.6" />
+    <path d="M9.5 12.6 12 15M10 9.5c1.2.6 2.4 1.4 3.4 2.5M14 20l4-9 4 9M15.3 17h5.4" />
+  </svg>
+);
 
 const initialCall = {
   callId: null,
@@ -74,6 +83,12 @@ export default function CallManager() {
   const [remoteIsSharing, setRemoteIsSharing] = useState(false);
   const [callSeconds, setCallSeconds] = useState(0);
   const [summaryState, setSummaryState] = useState("idle");
+  const [translationEnabled, setTranslationEnabled] = useState(false);
+  const [translation, setTranslation] = useState(null);
+  const [peerLanguage, setPeerLanguage] = useState("en-US");
+  const profile = useSelector((state) => state.auth.user);
+  const currentUser = profile?.userId || profile;
+  const myLanguage = currentUser?.preferredLanguage || "en-US";
   const callRef = useRef(initialCall);
   const peerConnectionRef = useRef(null);
   const localStreamRef = useRef(null);
@@ -81,6 +96,7 @@ export default function CallManager() {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const remoteAudioRef = useRef(null);
+  const translationAudioRef = useRef(null);
   const queuedCandidatesRef = useRef([]);
   const cameraTrackRef = useRef(null);
   const screenStreamRef = useRef(null);
@@ -90,6 +106,10 @@ export default function CallManager() {
   const summaryAudioContextRef = useRef(null);
   const isSummaryRecorderRef = useRef(false);
   const iceServersRef = useRef(FALLBACK_ICE_SERVERS);
+  const speechRecorderRef = useRef(null);
+  const translationEnabledRef = useRef(false);
+  const myLanguageRef = useRef(myLanguage);
+  const peerLanguageRef = useRef("en-US");
 
   const loadIceServers = useCallback(async () => {
     try {
@@ -178,6 +198,185 @@ export default function CallManager() {
     []
   );
 
+  const stopSpeechRecording = useCallback(() => {
+    if (
+      speechRecorderRef.current &&
+      speechRecorderRef.current.state !== "inactive"
+    ) {
+      try {
+        speechRecorderRef.current.stop();
+      } catch {
+        // The recorder may already be stopped.
+      }
+    }
+    speechRecorderRef.current = null;
+  }, []);
+
+  const startSpeechRecording = useCallback(() => {
+    if (speechRecorderRef.current || !localStreamRef.current) return;
+    if (typeof MediaRecorder === "undefined") return;
+    const mimeType = [
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/mp4",
+    ].find((type) => MediaRecorder.isTypeSupported(type));
+
+    // Each chunk gets its own fresh recorder instead of one continuous
+    // recorder sliced with start(2500) — only the FIRST slice of a
+    // timesliced recording carries a valid container header, so every
+    // slice after it fails Whisper's format check as a standalone file.
+    // Stopping and starting a new recorder each cycle guarantees every
+    // blob is a complete, independently-decodable audio file.
+    const recordNextChunk = () => {
+      if (!translationEnabledRef.current || !localStreamRef.current) {
+        speechRecorderRef.current = null;
+        return;
+      }
+      let recorder;
+      try {
+        recorder = new MediaRecorder(
+          localStreamRef.current,
+          mimeType ? { mimeType } : {}
+        );
+      } catch {
+        recorder = new MediaRecorder(localStreamRef.current);
+      }
+      const chunks = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size) chunks.push(event.data);
+      };
+      recorder.onstop = () => {
+        const callId = callRef.current.callId;
+        if (
+          chunks.length &&
+          translationEnabledRef.current &&
+          callId &&
+          callRef.current.status === "active"
+        ) {
+          const blob = new Blob(chunks, {
+            type: recorder.mimeType || mimeType || "audio/webm",
+          });
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64 = String(reader.result).split(",")[1];
+            if (!base64) return;
+            getSocket()?.emit("call:translate-speech", {
+              callId,
+              audio: base64,
+              mimeType: recorder.mimeType || mimeType || "audio/webm",
+              targetLang: peerLanguageRef.current,
+            });
+          };
+          reader.readAsDataURL(blob);
+        }
+        recordNextChunk();
+      };
+      speechRecorderRef.current = recorder;
+      try {
+        recorder.start();
+      } catch {
+        speechRecorderRef.current = null;
+        return;
+      }
+      window.setTimeout(() => {
+        if (recorder.state !== "inactive") recorder.stop();
+      }, 2500);
+    };
+
+    recordNextChunk();
+  }, []);
+
+  // A single toggle drives translation for the whole call: turning it on
+  // starts our own mic capture AND tells the peer's client to start theirs,
+  // so both directions translate from one click — neither side has to
+  // separately opt in for the other's speech to come through translated.
+  const toggleTranslation = useCallback(
+    (next) => {
+      translationEnabledRef.current = next;
+      setTranslationEnabled(next);
+      if (next) {
+        startSpeechRecording();
+      } else {
+        stopSpeechRecording();
+        setTranslation(null);
+      }
+    },
+    [startSpeechRecording, stopSpeechRecording]
+  );
+
+  const handleTranslationToggleClick = useCallback(() => {
+    const next = !translationEnabledRef.current;
+    toggleTranslation(next);
+    const callId = callRef.current.callId;
+    if (callId) {
+      getSocket()?.emit("call:translation-toggle", { callId, enabled: next });
+    }
+  }, [toggleTranslation]);
+
+  useEffect(() => {
+    myLanguageRef.current = myLanguage;
+  }, [myLanguage]);
+
+  useEffect(() => {
+    peerLanguageRef.current = peerLanguage;
+  }, [peerLanguage]);
+
+  useEffect(() => {
+    if (call.status === "active" && call.callId) {
+      getSocket()?.emit("call:set-language", {
+        callId: call.callId,
+        language: myLanguageRef.current,
+      });
+    }
+  }, [call.status, call.callId]);
+
+  const speakTranslation = useCallback((text, language) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      return;
+    }
+    const synth = window.speechSynthesis;
+    synth.cancel();
+    const normalize = (lang) => lang.toLowerCase().replace("_", "-");
+    const target = normalize(language);
+    const voices = synth.getVoices();
+    const voice =
+      voices.find((item) => normalize(item.lang) === target) ||
+      voices.find((item) =>
+        normalize(item.lang).startsWith(target.split("-")[0])
+      ) ||
+      null;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = voice ? voice.lang : language;
+    if (voice) utterance.voice = voice;
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    window.setTimeout(() => {
+      synth.resume();
+      synth.speak(utterance);
+    }, 60);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+      return undefined;
+    }
+    const synth = window.speechSynthesis;
+    synth.getVoices();
+    const loadVoices = () => synth.getVoices();
+    synth.addEventListener("voiceschanged", loadVoices);
+    return () => synth.removeEventListener("voiceschanged", loadVoices);
+  }, []);
+
+  const playTranslationAudio = useCallback((url) => {
+    if (!translationAudioRef.current) return;
+    const element = translationAudioRef.current;
+    element.pause();
+    element.src = url;
+    element.play().catch(() => {
+      // If audio playback is blocked, the subtitle still shows the result.
+    });
+  }, []);
+
   const stopMedia = useCallback(() => {
     screenStreamRef.current?.getTracks().forEach((track) => {
       track.onended = null;
@@ -204,8 +403,19 @@ export default function CallManager() {
     setCallSeconds(0);
     updateSummaryState("idle");
     isSummaryRecorderRef.current = false;
+    translationEnabledRef.current = false;
+    setTranslationEnabled(false);
+    setTranslation(null);
+    setPeerLanguage("en-US");
+    peerLanguageRef.current = "en-US";
+    window.speechSynthesis?.cancel();
+    if (translationAudioRef.current) {
+      translationAudioRef.current.pause();
+      translationAudioRef.current.removeAttribute("src");
+    }
+    stopSpeechRecording();
     updateCall(initialCall);
-  }, [stopMedia, updateCall, updateSummaryState]);
+  }, [stopMedia, stopSpeechRecording, updateCall, updateSummaryState]);
 
   const showEndedState = useCallback(
     (notice) => {
@@ -333,6 +543,9 @@ export default function CallManager() {
         status: "requesting-media",
         notice: "",
       });
+      const initialPeerLanguage = detail.peer?.preferredLanguage || "en-US";
+      setPeerLanguage(initialPeerLanguage);
+      peerLanguageRef.current = initialPeerLanguage;
 
       try {
         await loadIceServers();
@@ -379,6 +592,9 @@ export default function CallManager() {
         status: "incoming",
         notice: "",
       });
+      const initialPeerLanguage = incoming.caller?.preferredLanguage || "en-US";
+      setPeerLanguage(initialPeerLanguage);
+      peerLanguageRef.current = initialPeerLanguage;
     };
 
     const handleAccepted = async ({ callId }) => {
@@ -519,6 +735,40 @@ export default function CallManager() {
         updateSummaryState("declined");
       }
     };
+    const handleTranslationResult = ({
+      callId,
+      originalText,
+      translatedText,
+      sourceLang,
+      targetLang,
+      speakerId,
+      audio,
+    }) => {
+      if (callRef.current.callId !== callId) return;
+      setTranslation({
+        originalText,
+        translatedText,
+        sourceLang,
+        targetLang,
+        speakerId,
+      });
+      if (audio?.url) {
+        playTranslationAudio(audio.url);
+      } else {
+        speakTranslation(translatedText, targetLang);
+      }
+    };
+    const handlePeerLanguage = ({ callId, language }) => {
+      if (callRef.current.callId !== callId || !language) return;
+      peerLanguageRef.current = language;
+      setPeerLanguage(language);
+    };
+    // Mirrors the peer's translate toggle onto our own client — this is what
+    // makes one click turn on translation for both directions of the call.
+    const handlePeerTranslationToggle = ({ callId, enabled }) => {
+      if (callRef.current.callId !== callId) return;
+      toggleTranslation(Boolean(enabled));
+    };
 
     window.addEventListener("ripple:start-call", startCall);
     socket.on("call:incoming", handleIncoming);
@@ -537,6 +787,9 @@ export default function CallManager() {
     );
     socket.on("call:summary-approved", handleSummaryApproved);
     socket.on("call:summary-declined", handleSummaryDeclined);
+    socket.on("call:translation-result", handleTranslationResult);
+    socket.on("call:peer-language", handlePeerLanguage);
+    socket.on("call:translation-toggle", handlePeerTranslationToggle);
 
     return () => {
       window.removeEventListener("ripple:start-call", startCall);
@@ -556,19 +809,27 @@ export default function CallManager() {
       );
       socket.off("call:summary-approved", handleSummaryApproved);
       socket.off("call:summary-declined", handleSummaryDeclined);
+      socket.off("call:translation-result", handleTranslationResult);
+      socket.off("call:peer-language", handlePeerLanguage);
+      socket.off("call:translation-toggle", handlePeerTranslationToggle);
     };
   }, [
     acquireMedia,
     addQueuedCandidates,
     createPeerConnection,
     loadIceServers,
+    playTranslationAudio,
     resetCall,
     showEndedState,
+    speakTranslation,
+    toggleTranslation,
     startSummaryRecording,
     stopSummaryRecording,
     updateCall,
     updateSummaryState,
   ]);
+
+  useEffect(() => () => stopSpeechRecording(), [stopSpeechRecording]);
 
   const acceptCall = async () => {
     const current = callRef.current;
@@ -765,6 +1026,7 @@ export default function CallManager() {
           </div>
         )}
         {call.mode === "audio" && <audio ref={remoteAudioRef} autoPlay />}
+        <audio ref={translationAudioRef} />
 
         <div
           className={`${styles.callDetails} ${
@@ -812,6 +1074,30 @@ export default function CallManager() {
             >
               Allow
             </button>
+          </div>
+        )}
+
+        {translationEnabled && !translation && (
+          <div className={styles.translationStatus}>
+            <span className={styles.liveDot} />
+            Live translation on
+            {peerLanguage !== myLanguage && (
+              <>
+                {" "}
+                · {LANGUAGES[myLanguage]?.flag} → {LANGUAGES[peerLanguage]?.flag}
+              </>
+            )}
+          </div>
+        )}
+
+        {translation && (
+          <div className={styles.translationBar}>
+            <span className={styles.translationLabel}>
+              {displayForDetectedLanguage(translation.sourceLang).flag}
+              {" → "}
+              {LANGUAGES[translation.targetLang]?.flag || "🌐"}
+            </span>
+            <p>{translation.translatedText}</p>
           </div>
         )}
 
@@ -906,6 +1192,18 @@ export default function CallManager() {
                         ? "Not allowed"
                         : "Summarize"}
                 </span>
+              </button>
+              <button
+                className={`${styles.controlButton} ${
+                  translationEnabled ? styles.translationActive : ""
+                }`}
+                type="button"
+                onClick={handleTranslationToggleClick}
+                disabled={call.status !== "active"}
+                aria-label="Toggle live translation"
+              >
+                <TranslateIcon />
+                <span>{translationEnabled ? "Translate on" : "Translate"}</span>
               </button>
               <button
                 className={`${styles.controlButton} ${styles.endControl}`}
