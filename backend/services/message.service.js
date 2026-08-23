@@ -3,7 +3,9 @@ import cloudinary from "../config/cloudinary.js";
 import Conversation from "../models/conversations.model.js";
 import Message from "../models/messages.model.js";
 import Notification from "../models/notification.model.js";
+import User from "../models/user.model.js";
 import ApplicationError from "../utils/applicationError.js";
+import { translateMessageText } from "./ai.service.js";
 
 const ATTACHMENT_LIMITS = {
     image: 10 * 1024 * 1024,
@@ -191,6 +193,60 @@ const createTextMessage = async ({
         memberIds: conversation.members.map(String),
         conversation: conversationSummary,
     };
+};
+
+// Runs after a message is already sent and delivered - translation should
+// never delay a message showing up for the sender or recipient, so this is
+// always called fire-and-forget, with its result pushed out as a separate
+// message:updated event once (if) it resolves.
+const translateMessageForRecipients = async ({ message, memberIds }) => {
+    if (message.type !== "text" || !message.body) return null;
+
+    try {
+        const senderId = (message.senderId._id || message.senderId).toString();
+        const recipientIds = memberIds.filter((id) => id !== senderId);
+        if (!recipientIds.length) return null;
+
+        const users = await User.find({ _id: { $in: [senderId, ...recipientIds] } })
+            .select("preferredLanguage")
+            .lean();
+        const langById = new Map(
+            users.map((user) => [user._id.toString(), user.preferredLanguage || "en-US"])
+        );
+        const senderBase = (langById.get(senderId) || "en-US").split("-")[0];
+
+        // Only translate into languages that actually differ from the
+        // sender's, and only once per distinct language even in a group chat.
+        const targetLangs = new Set();
+        recipientIds.forEach((id) => {
+            const lang = langById.get(id) || "en-US";
+            if (lang.split("-")[0] !== senderBase) targetLangs.add(lang);
+        });
+        if (!targetLangs.size) return null;
+
+        const translations = [];
+        for (const lang of targetLangs) {
+            try {
+                const text = await translateMessageText({ text: message.body, targetLang: lang });
+                if (text) translations.push({ lang, text });
+            } catch (error) {
+                console.error(`Message translation failed (${lang}):`, error.message);
+            }
+        }
+        if (!translations.length) return null;
+
+        const updated = await Message.findByIdAndUpdate(
+            message._id,
+            { $set: { translations } },
+            { new: true }
+        );
+        if (!updated) return null;
+        await populateMessage(updated);
+        return updated;
+    } catch (error) {
+        console.error("Message translation pipeline failed:", error.message);
+        return null;
+    }
 };
 
 const markConversationMessagesRead = async ({
@@ -448,4 +504,5 @@ export {
     editMessage,
     markConversationMessagesRead,
     markMessageDelivered,
+    translateMessageForRecipients,
 };

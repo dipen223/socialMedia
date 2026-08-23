@@ -12,9 +12,11 @@ export default function SettingsPage() {
   const authState = useSelector((state) => state.auth.user);
   const currentUser = authState?.userId || authState;
   const currentLanguage = currentUser?.preferredLanguage || "en-US";
+  const currentVoiceGender = currentUser?.voiceGender === "male" ? "male" : "female";
 
   const [query, setQuery] = useState("");
   const [saving, setSaving] = useState(null);
+  const [savingVoice, setSavingVoice] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
   const filteredLanguages = useMemo(() => {
@@ -39,6 +41,22 @@ export default function SettingsPage() {
       );
     } finally {
       setSaving(null);
+    }
+  };
+
+  const selectVoiceGender = async (gender) => {
+    if (gender === currentVoiceGender || savingVoice) return;
+    setSavingVoice(true);
+    setErrorMsg("");
+    try {
+      await clientServer.post("/updateAccountInfo", { voiceGender: gender });
+      dispatch(getUserProfile());
+    } catch (err) {
+      setErrorMsg(
+        err.response?.data?.message || "Could not save your voice preference."
+      );
+    } finally {
+      setSavingVoice(false);
     }
   };
 
@@ -91,6 +109,40 @@ export default function SettingsPage() {
                   {saving === code && (
                     <span className={styles.savingMark}>Saving…</span>
                   )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h3>Translated voice</h3>
+            <p>
+              When your speech gets translated for someone on a call, this is
+              the voice they hear standing in for yours.
+            </p>
+          </div>
+
+          <div className={styles.languageGrid}>
+            {[
+              { value: "female", label: "Female" },
+              { value: "male", label: "Male" },
+            ].map(({ value, label }) => {
+              const isActive = value === currentVoiceGender;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  className={`${styles.languageOption} ${
+                    isActive ? styles.languageOptionActive : ""
+                  }`}
+                  onClick={() => selectVoiceGender(value)}
+                  disabled={savingVoice}
+                  aria-pressed={isActive}
+                >
+                  <span className={styles.languageName}>{label}</span>
+                  {isActive && <span className={styles.checkMark}>✓</span>}
                 </button>
               );
             })}

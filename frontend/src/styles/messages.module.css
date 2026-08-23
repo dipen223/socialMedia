@@ -468,6 +468,22 @@
   white-space: pre-wrap;
 }
 
+.translationToggle {
+  justify-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #718078;
+  font-size: 11px;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.translationToggle:hover {
+  color: #1f6b4f;
+}
+
 .messageBody .deletedMessage {
   background: #f1f3f2;
   box-shadow: none;
