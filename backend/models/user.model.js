@@ -45,6 +45,13 @@ const userSchema = new Schema({
         type: String,
         default: "default.jpg",
     },
+    // Drives which TTS voice stands in for this person when their speech gets
+    // translated for a call partner - not shown/used anywhere else.
+    voiceGender: {
+        type: String,
+        enum: ["female", "male"],
+        default: "female",
+    },
     createdAt: {
         type: Date,
         default: Date.now,

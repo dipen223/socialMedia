@@ -219,12 +219,12 @@ const uploadCoverPhoto = async (req, res) => {
 
 const updateUserProfile = async (req, res) => {
     const userId = req.user.id;
-    const { name, email, username, preferredLanguage } = req.body;
+    const { name, email, username, preferredLanguage, voiceGender } = req.body;
     try {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ message: "User not found!" });
 
-        if (!name && !email && !username && !preferredLanguage) {
+        if (!name && !email && !username && !preferredLanguage && !voiceGender) {
             return res.status(400).json({ message: "No fields provided to update!" });
         }
 
@@ -252,6 +252,10 @@ const updateUserProfile = async (req, res) => {
             user.preferredLanguage = preferredLanguage;
         }
 
+        if (voiceGender === "male" || voiceGender === "female") {
+            user.voiceGender = voiceGender;
+        }
+
         await user.save();
 
         res.json({
@@ -262,6 +266,7 @@ const updateUserProfile = async (req, res) => {
                 username: user.username,
                 email: user.email,
                 preferredLanguage: user.preferredLanguage,
+                voiceGender: user.voiceGender,
             },
         });
     } catch (err) {
@@ -277,7 +282,7 @@ const getUserProfile = async (req, res) => {
         const user = await User.findById(userId);
         if (!user) return res.status(404).json({ message: "User not found!" });
 
-        const userProfile = await Profile.findOne({ userId: user._id }).populate("userId", "name username email profilePicture preferredLanguage");
+        const userProfile = await Profile.findOne({ userId: user._id }).populate("userId", "name username email profilePicture preferredLanguage voiceGender");
 
         if (!userProfile) {
             return res.status(404).json({ message: "Profile not found!" });

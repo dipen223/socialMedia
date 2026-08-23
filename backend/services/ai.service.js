@@ -212,11 +212,10 @@ export const transcribeAudio = async ({ buffer, mimeType = "audio/webm" }) => {
     };
 };
 
-// No sourceLang param — the model detects the source language itself from
-// the text. This matters because the speaker's actual spoken language can
-// differ from anything they've configured (or isn't in our curated list at
-// all), while GPT's translation coverage is broad regardless.
-export const translateSpeechText = async ({ text, targetLang }) => {
+// Shared by translateSpeechText and translateMessageText - both detect the
+// source language themselves rather than trusting a locale the sender picked
+// ahead of time, and differ only in how the text is framed for the model.
+const translateText = async ({ text, targetLang, framing }) => {
     requireApiKey();
 
     const targetName = LANGUAGE_NAMES[targetLang] || targetLang;
@@ -234,7 +233,7 @@ export const translateSpeechText = async ({ text, targetLang }) => {
                 "gpt-5-nano",
             instructions: [
                 `Detect the language of the user's message and translate it to ${targetName}.`,
-                "This is a fragment of live spoken call audio, not formal writing — it may be informal, cut off mid-sentence, or contain filler words. Translate it naturally, as speech.",
+                framing,
                 "Output ONLY the translated text — no quotes, labels, explanations, or the original text.",
                 "If the input has no real translatable content, output nothing.",
             ].join(" "),
@@ -249,7 +248,33 @@ export const translateSpeechText = async ({ text, targetLang }) => {
     return readOutputText(data) || "";
 };
 
-export const synthesizeSpeech = async ({ text, language }) => {
+export const translateSpeechText = ({ text, targetLang }) =>
+    translateText({
+        text,
+        targetLang,
+        framing:
+            "This is a fragment of live spoken call audio, not formal writing — it may be informal, cut off mid-sentence, or contain filler words. Translate it naturally, as speech.",
+    });
+
+// For chat messages, not spoken audio - preserve tone, slang, and emojis
+// rather than smoothing them into formal writing.
+export const translateMessageText = ({ text, targetLang }) =>
+    translateText({
+        text,
+        targetLang,
+        framing:
+            "This is a written chat message between two people, not formal writing — keep the tone, slang, and any emojis as they are. Do not make it more formal.",
+    });
+
+// gpt-4o-mini-tts isn't explicitly gendered by OpenAI, but these are the
+// commonly-recognized male/female-leaning voices among its options - override
+// either via env if a specific one sounds better for your use case.
+const VOICE_BY_GENDER = {
+    male: process.env.OPENAI_TTS_VOICE_MALE || "onyx",
+    female: process.env.OPENAI_TTS_VOICE_FEMALE || "coral",
+};
+
+export const synthesizeSpeech = async ({ text, language, voiceGender }) => {
     requireApiKey();
 
     // The TTS endpoint has no `language` param — it infers pronunciation from
@@ -265,8 +290,13 @@ export const synthesizeSpeech = async ({ text, language }) => {
         },
         body: JSON.stringify({
             model: process.env.OPENAI_TTS_MODEL || "gpt-4o-mini-tts",
-            voice: process.env.OPENAI_TTS_VOICE || "alloy",
+            voice: process.env.OPENAI_TTS_VOICE || VOICE_BY_GENDER[voiceGender] || VOICE_BY_GENDER.female,
             input: text,
+            instructions:
+                "Speak naturally and warmly, like a real person casually talking " +
+                "to a friend on a call — not a formal announcer or a narrator. " +
+                "Use a relaxed, conversational pace and natural intonation for " +
+                "the language being spoken.",
             response_format: "mp3",
         }),
         signal: AbortSignal.timeout(15000),

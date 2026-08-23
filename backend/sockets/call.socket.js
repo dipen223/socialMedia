@@ -111,7 +111,11 @@ const processTranslationChunk = async ({
 
         let audioUrl;
         try {
-            const speechBuffer = await synthesizeSpeech({ text: translatedText, language: targetLang });
+            const speechBuffer = await synthesizeSpeech({
+                text: translatedText,
+                language: targetLang,
+                voiceGender: call.voiceGenders?.[speakerId],
+            });
             audioUrl = `data:audio/mpeg;base64,${speechBuffer.toString("base64")}`;
         } catch (ttsError) {
             // No audio.url -> frontend falls back to browser SpeechSynthesis.
@@ -147,7 +151,7 @@ const registerCallHandlers = ({ io, socket }) => {
                 type: "direct",
                 members: { $all: [currentUserId, targetUserId] },
             })
-                .populate("members", "name username profilePicture preferredLanguage")
+                .populate("members", "name username profilePicture preferredLanguage voiceGender")
                 .lean();
 
             if (!conversation || targetUserId === currentUserId) {
@@ -170,6 +174,13 @@ const registerCallHandlers = ({ io, socket }) => {
             const caller = conversation.members.find(
                 (member) => member._id.toString() === currentUserId
             );
+            // Captured once at call setup, from each member's own profile - the
+            // synthesized voice that stands in for a speaker should match how
+            // they set their own gender, not something guessed per-chunk.
+            const voiceGenders = {};
+            conversation.members.forEach((member) => {
+                voiceGenders[member._id.toString()] = member.voiceGender === "male" ? "male" : "female";
+            });
             const callId = randomUUID();
             const call = {
                 callId,
@@ -184,6 +195,7 @@ const registerCallHandlers = ({ io, socket }) => {
                 summaryConsent: null,
                 languages: {},
                 pendingTranslations: {},
+                voiceGenders,
             };
             call.timeoutId = setTimeout(() => {
                 closeCall(io, callId, "missed", null);
