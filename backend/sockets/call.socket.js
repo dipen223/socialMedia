@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import Conversation from "../models/conversations.model.js";
+import User from "../models/user.model.js";
 import { createCallHistoryMessage } from "../services/message.service.js";
 import {
     transcribeAudio,
@@ -7,9 +8,17 @@ import {
     synthesizeSpeech,
     SUPPORTED_TRANSLATION_LANGUAGES,
 } from "../services/ai.service.js";
+import { PLAN_LIMITS_SECONDS, reportOverageUsage } from "../services/stripe.service.js";
 
 const calls = new Map();
 const RING_TIMEOUT_MS = 45000;
+// Dev/testing escape hatch - set ENFORCE_TRANSLATION_BILLING=false in .env to
+// let every account translate freely, so test accounts don't each need a real
+// Stripe checkout just to test call quality. Defaults to enforced/on.
+const BILLING_ENFORCED = process.env.ENFORCE_TRANSLATION_BILLING !== "false";
+// A chunk's self-reported duration is trusted for usage metering but clamped
+// so a malicious client can't inflate/deflate it beyond one VAD chunk's worth.
+const MAX_CHUNK_DURATION_MS = 15000;
 
 // A silent-but-live 2.5s mic chunk still produces a full-size WebM blob, so
 // this only catches literal empty/near-empty ones before spending an ASR call.
@@ -90,6 +99,28 @@ const closeCall = async (io, callId, reason, endedBy) => {
                 historyMessageId,
             });
         });
+};
+
+// Plan/usage is looked up once per speaker per call and cached on the call
+// object - cheap enough for a call's lifetime, and avoids a DB round trip on
+// every 2.5-7s chunk. A mid-call upgrade won't unblock the caller until their
+// next call; acceptable for this feature's scale.
+const getSpeakerBilling = async (call, userId) => {
+    if (call.billing[userId]) return call.billing[userId];
+
+    const user = await User.findById(userId)
+        .select("plan translationSecondsUsed translationOverageMinutesReported stripeCustomerId")
+        .lean();
+    const plan = user?.plan || "free";
+    const billing = {
+        plan,
+        limitSeconds: PLAN_LIMITS_SECONDS[plan] ?? 0,
+        secondsUsed: user?.translationSecondsUsed || 0,
+        overageMinutesReported: user?.translationOverageMinutesReported || 0,
+        stripeCustomerId: user?.stripeCustomerId || null,
+    };
+    call.billing[userId] = billing;
+    return billing;
 };
 
 const processTranslationChunk = async ({
@@ -195,6 +226,7 @@ const registerCallHandlers = ({ io, socket }) => {
                 summaryConsent: null,
                 languages: {},
                 pendingTranslations: {},
+                billing: {},
                 voiceGenders,
             };
             call.timeoutId = setTimeout(() => {
@@ -326,7 +358,7 @@ const registerCallHandlers = ({ io, socket }) => {
         });
     });
 
-    socket.on("call:translate-speech", (payload = {}) => {
+    socket.on("call:translate-speech", async (payload = {}) => {
         const call = calls.get(payload.callId);
         if (
             !call ||
@@ -343,9 +375,61 @@ const registerCallHandlers = ({ io, socket }) => {
         if (!targetLang || !audioBase64) return;
 
         const speakerId = socket.user.id.toString();
+
+        let speakerBilling;
+        try {
+            speakerBilling = await getSpeakerBilling(call, speakerId);
+        } catch (error) {
+            console.error(`Could not load billing state for ${speakerId}:`, error.message);
+            return;
+        }
+        if (!calls.has(call.callId)) return;
+
+        // Free has no translation access at all - Plus never gets hard-blocked,
+        // minutes past its 200/month included allowance just bill automatically
+        // as overage (see below) instead of cutting a call off mid-sentence.
+        if (BILLING_ENFORCED && speakerBilling.limitSeconds === 0) {
+            socket.emit("call:translation-blocked", { callId: call.callId, reason: "upgrade_required" });
+            return;
+        }
+
         const inFlight = call.pendingTranslations[speakerId] || 0;
         if (inFlight >= MAX_CONCURRENT_TRANSLATIONS_PER_SPEAKER) return;
         call.pendingTranslations[speakerId] = inFlight + 1;
+
+        // Charged on acceptance, not on a successful translation - a chunk still
+        // costs an ASR call (and often MT/TTS too) even when it turns out to be
+        // silence or gets skipped, so usage should reflect what was attempted.
+        const chunkSeconds =
+            Math.min(Math.max(Number(payload.durationMs) || 0, 0), MAX_CHUNK_DURATION_MS) / 1000;
+        speakerBilling.secondsUsed += chunkSeconds;
+        User.updateOne({ _id: speakerId }, { $inc: { translationSecondsUsed: chunkSeconds } }).catch(
+            (error) => console.error(`Could not record translation usage for ${speakerId}:`, error.message)
+        );
+
+        // Only the whole overage minutes newly crossed by THIS chunk get
+        // reported - never re-reporting what's already been sent to Stripe's
+        // meter is what keeps a chunk from ever being billed twice.
+        const overageMinutesTotal = Math.floor(
+            Math.max(0, speakerBilling.secondsUsed - speakerBilling.limitSeconds) / 60
+        );
+        const newOverageMinutes = overageMinutesTotal - speakerBilling.overageMinutesReported;
+        if (newOverageMinutes > 0 && speakerBilling.stripeCustomerId) {
+            speakerBilling.overageMinutesReported = overageMinutesTotal;
+            reportOverageUsage({
+                customerId: speakerBilling.stripeCustomerId,
+                minutes: newOverageMinutes,
+            })
+                .then(() =>
+                    User.updateOne(
+                        { _id: speakerId },
+                        { $set: { translationOverageMinutesReported: overageMinutesTotal } }
+                    )
+                )
+                .catch((error) =>
+                    console.error(`Could not report translation overage for ${speakerId}:`, error.message)
+                );
+        }
 
         processTranslationChunk({
             io,

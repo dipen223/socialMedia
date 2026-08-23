@@ -11,10 +11,12 @@ import callRouter from "./call.router.js";
 import discussionRoomRouter from "./discussionRoom.router.js";
 import storyRouter from "./story.router.js";
 import faceReactionRouter from "./faceReaction.router.js";
+import billingRouter from "./billing.router.js";
 
 const router = express.Router();
 
 router.use(userRouter);
+router.use(billingRouter);
 router.use(postsRouter);
 router.use(aiRouter);
 router.use(commentsRouter);

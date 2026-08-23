@@ -60,6 +60,43 @@ const userSchema = new Schema({
         type: String,
         default: "",
     },
+    plan: {
+        type: String,
+        enum: ["free", "plus"],
+        default: "free",
+    },
+    subscriptionStatus: {
+        // Mirrors Stripe subscription status ("active", "past_due", "canceled", ...).
+        // null while the user has never subscribed.
+        type: String,
+        default: null,
+    },
+    stripeCustomerId: {
+        type: String,
+        default: null,
+    },
+    stripeSubscriptionId: {
+        type: String,
+        default: null,
+    },
+    currentPeriodEnd: {
+        type: Date,
+        default: null,
+    },
+    translationSecondsUsed: {
+        type: Number,
+        default: 0,
+    },
+    translationCycleStart: {
+        type: Date,
+        default: Date.now,
+    },
+    // Whole minutes already reported to Stripe's usage meter this cycle -
+    // only the delta beyond this gets reported, so a chunk never gets billed twice.
+    translationOverageMinutesReported: {
+        type: Number,
+        default: 0,
+    },
 });
 
 const User = mongoose.model("User", userSchema);

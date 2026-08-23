@@ -15,6 +15,7 @@ const Sidebar = () => {
     { href: "/dashboard/saved", label: "Saved Bookmarks" },
     { href: "/dashboard/messages", label: "Messages" },
     { href: "/dashboard/discover", label: "Discover People" },
+    { href: "/dashboard/pricing", label: "Plans & Billing" },
     { href: "/dashboard/settings", label: "Settings" },
   ];
 

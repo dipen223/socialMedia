@@ -123,6 +123,42 @@ OPENAI_TTS_MODEL=model_name
 OPENAI_TTS_VOICE=voice_name
 ```
 
+Optional subscription billing (live call translation is gated behind the
+Plus plan - the rest of the app works without these). Plus is the only paid
+tier: a flat monthly/annual base price for 200 included translated
+minutes/month, plus a metered overage price that bills automatically per
+minute beyond that - there's no separate "Unlimited" plan, since a flat price
+can't safely promise unlimited AI-translation usage.
+
+```env
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_PLUS_MONTHLY=price_...
+STRIPE_PRICE_PLUS_ANNUAL=price_...
+STRIPE_PRICE_PLUS_OVERAGE=price_...
+STRIPE_METER_EVENT_NAME=translation_overage_minute
+```
+
+To set these up:
+
+1. Create a [Stripe](https://stripe.com) account (test mode is fine for development).
+2. In the Dashboard, create one Product ("Plus") with two recurring Prices
+   (monthly and annual). Copy each Price's id into the matching env var above.
+3. Create a **billing meter** (Dashboard → Billing → Meters, or
+   `stripe billing meters create`) with event name `translation_overage_minute`
+   (or your own - just match `STRIPE_METER_EVENT_NAME`), aggregation `sum`,
+   and value payload key `value`.
+4. Create one more recurring Price on the same "Plus" product: usage type
+   **Metered**, attached to that meter, priced per minute (e.g. $0.06). Copy
+   its id into `STRIPE_PRICE_PLUS_OVERAGE`.
+5. Copy your test **Secret key** into `STRIPE_SECRET_KEY`.
+6. Point a webhook at `POST {backend_url}/billing/webhook`, listening for
+   `checkout.session.completed`, `customer.subscription.updated`,
+   `customer.subscription.created`, and `customer.subscription.deleted`.
+   For local development, use the [Stripe CLI](https://stripe.com/docs/stripe-cli):
+   `stripe listen --forward-to localhost:3001/billing/webhook` - it prints a
+   `whsec_...` value to put in `STRIPE_WEBHOOK_SECRET`.
+
 ### Frontend environment
 
 Create `frontend/.env.local`:

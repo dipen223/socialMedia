@@ -11,6 +11,7 @@ import registerMessageHandlers from "./sockets/message.socket.js";
 import registerPresenceHandlers from "./sockets/presence.socket.js";
 import registerCallHandlers from "./sockets/call.socket.js";
 import registerDiscussionHandlers from "./sockets/discussion.socket.js";
+import billingController from "./controllers/billing.controller.js";
 
 dotenv.config();
 
@@ -53,6 +54,15 @@ const io = new Server(httpServer,{
   }
 });
 app.set("io", io);
+
+// Stripe verifies the webhook signature against the exact raw request body,
+// so this route must read it unparsed - it has to be registered before the
+// global express.json() below, which would otherwise consume the stream first.
+app.post(
+  "/billing/webhook",
+  express.raw({ type: "application/json" }),
+  billingController.handleWebhook
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
