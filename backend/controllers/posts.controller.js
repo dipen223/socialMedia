@@ -173,9 +173,16 @@ const getFeed = async (req, res) => {
         const postIds = posts.map((post) => post._id);
 
         const [liveRooms, commentCounts, connections] = await Promise.all([
+            // participantCount > 0, not just status: "live" - a room's status
+            // can go stale (never gets marked ended once everyone leaves), so
+            // trusting the flag alone would hand out the live-room ranking
+            // boost to a post whose "live" room has been empty for weeks.
+            // Requiring an actual current participant is what "live" should
+            // mean for ranking purposes, even if the stored status disagrees.
             DiscussionRoom.find({
                 postId: { $in: postIds },
                 status: "live",
+                participantCount: { $gt: 0 },
             })
                 .select("postId title participantCount hostId")
                 .lean(),
