@@ -83,6 +83,13 @@ const SummaryIcon = () => (
   </svg>
 );
 
+const NoteIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M12 20h9" />
+    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+  </svg>
+);
+
 const MinimizeIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M6 14h4a2 2 0 0 1 2 2v4M18 10h-4a2 2 0 0 1-2-2V4" />
@@ -103,6 +110,7 @@ export default function CallManager() {
   const [translation, setTranslation] = useState(null);
   const [peerLanguage, setPeerLanguage] = useState("en-US");
   const [translationBlockedReason, setTranslationBlockedReason] = useState(null);
+  const [noteState, setNoteState] = useState("idle"); // idle | recording | saving | saved
   const profile = useSelector((state) => state.auth.user);
   const currentUser = profile?.userId || profile;
   const myLanguage = currentUser?.preferredLanguage || "en-US";
@@ -129,6 +137,9 @@ export default function CallManager() {
   const vadHasSpeechRef = useRef(false);
   const vadSilenceStartRef = useRef(null);
   const vadChunkStartRef = useRef(0);
+  const noteRecorderRef = useRef(null);
+  const noteChunksRef = useRef([]);
+  const noteSavedTimeoutRef = useRef(null);
   const translationEnabledRef = useRef(false);
   const myLanguageRef = useRef(myLanguage);
   const peerLanguageRef = useRef("en-US");
@@ -518,6 +529,9 @@ export default function CallManager() {
       translationAudioRef.current.removeAttribute("src");
     }
     stopSpeechRecording();
+    noteRecorderRef.current?.stop();
+    clearTimeout(noteSavedTimeoutRef.current);
+    setNoteState("idle");
     updateCall(initialCall);
   }, [stopMedia, stopSpeechRecording, updateCall, updateSummaryState]);
 
@@ -1040,6 +1054,81 @@ export default function CallManager() {
     setIsCameraOff(nextCameraOff);
   };
 
+  // A manual, self-only note capture - independent of the translation
+  // pipeline above. It records only the local mic (localStreamRef.current),
+  // never the peer's audio, and is only ever started by an explicit tap.
+  const toggleNoteRecording = () => {
+    if (noteState === "recording") {
+      noteRecorderRef.current?.stop();
+      return;
+    }
+    if (noteState !== "idle" || !localStreamRef.current) return;
+
+    const mimeType = [
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/mp4",
+    ].find((type) => MediaRecorder.isTypeSupported(type));
+    let recorder;
+    try {
+      recorder = new MediaRecorder(
+        localStreamRef.current,
+        mimeType ? { mimeType } : {}
+      );
+    } catch {
+      recorder = new MediaRecorder(localStreamRef.current);
+    }
+    noteChunksRef.current = [];
+
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) noteChunksRef.current.push(event.data);
+    };
+
+    recorder.onstop = async () => {
+      noteRecorderRef.current = null;
+      const blob = new Blob(noteChunksRef.current, {
+        type: mimeType || "audio/webm",
+      });
+      if (!blob.size) {
+        setNoteState("idle");
+        return;
+      }
+
+      setNoteState("saving");
+      try {
+        const formData = new FormData();
+        formData.append("audio", blob, "call-note.webm");
+        if (callRef.current.conversationId) {
+          formData.append("conversationId", callRef.current.conversationId);
+        }
+        if (callRef.current.callId) {
+          formData.append("callId", callRef.current.callId);
+        }
+        try {
+          formData.append(
+            "timezone",
+            Intl.DateTimeFormat().resolvedOptions().timeZone
+          );
+        } catch {
+          // No-op: the note still saves without a timezone hint.
+        }
+        await clientServer.post("/notes/voice", formData);
+        setNoteState("saved");
+        noteSavedTimeoutRef.current = setTimeout(
+          () => setNoteState("idle"),
+          2500
+        );
+      } catch (error) {
+        console.error("Could not save call note:", error.message);
+        setNoteState("idle");
+      }
+    };
+
+    noteRecorderRef.current = recorder;
+    recorder.start();
+    setNoteState("recording");
+  };
+
   const stopScreenShare = useCallback(async () => {
     if (!screenStreamRef.current) return;
     const sender = peerConnectionRef.current
@@ -1243,6 +1332,15 @@ export default function CallManager() {
                   Summary recording on
                 </span>
               )}
+              {noteState === "recording" && (
+                <span className={styles.recordingBadge}>
+                  <i />
+                  Taking a note...
+                </span>
+              )}
+              {noteState === "saved" && (
+                <span className={styles.recordingBadge}>Note saved</span>
+              )}
             </div>
 
             {summaryState === "consent" && (
@@ -1370,6 +1468,30 @@ export default function CallManager() {
                       </button>
                     </>
                   )}
+                  <button
+                    className={`${styles.controlButton} ${
+                      noteState === "recording" ? styles.summaryActive : ""
+                    }`}
+                    type="button"
+                    onClick={toggleNoteRecording}
+                    disabled={
+                      call.status !== "active" ||
+                      !hasLocalMedia ||
+                      noteState === "saving"
+                    }
+                    aria-label={
+                      noteState === "recording" ? "Stop and save note" : "Take a note"
+                    }
+                  >
+                    <NoteIcon />
+                    <span>
+                      {noteState === "recording"
+                        ? "Stop"
+                        : noteState === "saving"
+                          ? "Saving..."
+                          : "Note"}
+                    </span>
+                  </button>
                   <button
                     className={`${styles.controlButton} ${
                       summaryState === "recording" ? styles.summaryActive : ""

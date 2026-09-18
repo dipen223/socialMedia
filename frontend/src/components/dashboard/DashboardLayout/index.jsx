@@ -67,6 +67,9 @@ export default function DashboardLayout({ children, wide = false,}) {
     const handleUpdatedMessage = ({ message }) => {
       if (message) dispatch(updateMessage(message));
     };
+    const handleNoteReminder = () => {
+      dispatch(getNotifications());
+    };
 
     socket.auth = {
       token,
@@ -78,6 +81,7 @@ export default function DashboardLayout({ children, wide = false,}) {
     socket.on("message:read", handleReadReceipt);
     socket.on("message:delivered", handleDeliveryReceipt);
     socket.on("message:updated", handleUpdatedMessage);
+    socket.on("note:reminder", handleNoteReminder);
 
     socket.connect();
 
@@ -88,6 +92,7 @@ export default function DashboardLayout({ children, wide = false,}) {
       socket.off("message:read", handleReadReceipt);
       socket.off("message:delivered", handleDeliveryReceipt);
       socket.off("message:updated", handleUpdatedMessage);
+      socket.off("note:reminder", handleNoteReminder);
       socket.disconnect();
     };
   }, [checkingAuth, currentUserId, dispatch]);
