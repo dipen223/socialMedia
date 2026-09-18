@@ -5,8 +5,10 @@ import cloudinary from "../config/cloudinary.js";
 import Comment from "../models/comments.model.js";
 import Notification from "../models/notification.model.js";
 import DiscussionRoom from "../models/discussionRoom.model.js";
+import Connection from "../models/connections.model.js";
 import { randomUUID } from "crypto";
 import FaceReaction from "../models/faceReaction.model.js";
+import { rankPosts } from "../services/feedRanking.service.js";
 
 const MEDIA_LIMITS = {
     image: 10 * 1024 * 1024,
@@ -154,6 +156,83 @@ const getAllPosts = async (req, res) => {
         return res.status(500).json({ message: "Server error!" });
     }
 
+};
+
+// Same data as getAllPosts (chronological) - this just re-sorts it by
+// rankPosts's score instead of createdAt. Kept as its own endpoint rather
+// than changing /allPosts in place, so existing callers are unaffected while
+// this is tried out.
+const getFeed = async (req, res) => {
+    try {
+        const posts = await Post.find({ active: true })
+            .populate("userId", "name username email profilePicture")
+            .populate("faceReactions.userId", "name username")
+            .populate("faceReactions.reactionId", "name imageUrl ownerId active")
+            .lean();
+
+        const postIds = posts.map((post) => post._id);
+
+        const [liveRooms, commentCounts, connections] = await Promise.all([
+            // participantCount > 0, not just status: "live" - a room's status
+            // can go stale (never gets marked ended once everyone leaves), so
+            // trusting the flag alone would hand out the live-room ranking
+            // boost to a post whose "live" room has been empty for weeks.
+            // Requiring an actual current participant is what "live" should
+            // mean for ranking purposes, even if the stored status disagrees.
+            DiscussionRoom.find({
+                postId: { $in: postIds },
+                status: "live",
+                participantCount: { $gt: 0 },
+            })
+                .select("postId title participantCount hostId")
+                .lean(),
+            Comment.aggregate([
+                { $match: { postId: { $in: postIds } } },
+                { $group: { _id: "$postId", count: { $sum: 1 } } }
+            ]),
+            Connection.find({
+                status: "accepted",
+                $or: [
+                    { requesterId: req.user.id },
+                    { recipientId: req.user.id }
+                ]
+            })
+                .select("requesterId recipientId")
+                .lean(),
+        ]);
+
+        const roomsByPost = new Map(
+            liveRooms.map((room) => [room.postId.toString(), room])
+        );
+        const countMap = new Map(
+            commentCounts.map((c) => [c._id.toString(), c.count])
+        );
+        // Either side of an accepted connection could be "the other person" -
+        // collapse both directions into one set of ids the viewer is
+        // connected to, so ranking just does an O(1) membership check per post.
+        const connectionUserIds = new Set(
+            connections.map((connection) =>
+                (connection.requesterId.toString() === req.user.id
+                    ? connection.recipientId
+                    : connection.requesterId
+                ).toString()
+            )
+        );
+
+        const postsWithDetails = posts.map((post) => ({
+            ...post,
+            commentCount: countMap.get(post._id.toString()) || 0,
+            liveDiscussion: roomsByPost.get(post._id.toString()) || null,
+        }));
+
+        const ranked = rankPosts(postsWithDetails, connectionUserIds);
+
+        return res.status(200).json({ count: ranked.length, posts: ranked });
+
+    } catch (err) {
+        console.error("Error building ranked feed!", err.message);
+        return res.status(500).json({ message: "Server error!" });
+    }
 };
 
 const deletePost = async (req, res) => {
@@ -624,4 +703,4 @@ const getPostReactions = async (req, res) => {
 
 };
 
-export default { createPost, getAllPosts, getUploadSignature, deletePost, updatePost, likePost, reactWithFace, removeFaceReaction, getTrendingHashtags, getPostsByHashtag, bookmarkPost, getSavedPosts,getPostReactions };
+export default { createPost, getAllPosts, getFeed, getUploadSignature, deletePost, updatePost, likePost, reactWithFace, removeFaceReaction, getTrendingHashtags, getPostsByHashtag, bookmarkPost, getSavedPosts,getPostReactions };

@@ -6,7 +6,12 @@ export const getAllPosts = createAsyncThunk(
     "post/getAllPosts", async (_, thunkAPI) => {
         try {
 
-            const response = await clientServer.get("/allPosts");
+            // /feed returns the same { count, posts } shape as /allPosts (each
+            // post additionally carries a feedScore), just ranked instead of
+            // strictly chronological - every screen that reads state.posts.posts
+            // (main feed, profile page, single-post view, post creation refetch)
+            // gets ranked order for free from this one thunk.
+            const response = await clientServer.get("/feed");
             return thunkAPI.fulfillWithValue(response.data);
 
         } catch (err) {
