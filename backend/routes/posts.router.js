@@ -5,6 +5,7 @@ import auth from "../middlewares/auth.js";
 const postsRouter = express.Router();
 
 postsRouter.get("/allPosts",auth,postsController.getAllPosts);
+postsRouter.get("/feed",auth,postsController.getFeed);
 postsRouter.get("/trending_hashtags",auth,postsController.getTrendingHashtags);
 postsRouter.get("/hashtag/:tag",auth,postsController.getPostsByHashtag);
 postsRouter.get("/saved_posts",auth,postsController.getSavedPosts);
