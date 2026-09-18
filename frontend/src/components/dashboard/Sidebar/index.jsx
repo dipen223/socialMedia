@@ -14,7 +14,9 @@ const Sidebar = () => {
     { href: "/dashboard/connections", label: "Connections" },
     { href: "/dashboard/saved", label: "Saved Bookmarks" },
     { href: "/dashboard/messages", label: "Messages" },
+    { href: "/dashboard/notes", label: "Notes" },
     { href: "/dashboard/discover", label: "Discover People" },
+    { href: "/dashboard/pricing", label: "Plans & Billing" },
     { href: "/dashboard/settings", label: "Settings" },
   ];
 

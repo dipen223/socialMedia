@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useSelector } from "react-redux";
 import { getSocket } from "@/config/socket";
 import { clientServer } from "@/config";
@@ -12,6 +13,14 @@ const FALLBACK_ICE_SERVERS = [
       "stun:stun.l.google.com:19302",
   },
 ];
+
+// Voice-activity detection tuning for speech chunking: a chunk ends when the
+// speaker actually pauses, not on a fixed timer, so Whisper gets whole
+// phrases instead of arbitrary fragments cut mid-word.
+const VAD_SAMPLE_INTERVAL_MS = 100;
+const VAD_SILENCE_STOP_MS = 600;
+const VAD_MAX_CHUNK_MS = 7000;
+const VAD_SPEAKING_RMS_THRESHOLD = 10;
 
 const TranslateIcon = () => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -74,8 +83,22 @@ const SummaryIcon = () => (
   </svg>
 );
 
+const NoteIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M12 20h9" />
+    <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
+  </svg>
+);
+
+const MinimizeIcon = () => (
+  <svg viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M6 14h4a2 2 0 0 1 2 2v4M18 10h-4a2 2 0 0 1-2-2V4" />
+  </svg>
+);
+
 export default function CallManager() {
   const [call, setCall] = useState(initialCall);
+  const [minimized, setMinimized] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [hasLocalMedia, setHasLocalMedia] = useState(false);
@@ -86,6 +109,8 @@ export default function CallManager() {
   const [translationEnabled, setTranslationEnabled] = useState(false);
   const [translation, setTranslation] = useState(null);
   const [peerLanguage, setPeerLanguage] = useState("en-US");
+  const [translationBlockedReason, setTranslationBlockedReason] = useState(null);
+  const [noteState, setNoteState] = useState("idle"); // idle | recording | saving | saved
   const profile = useSelector((state) => state.auth.user);
   const currentUser = profile?.userId || profile;
   const myLanguage = currentUser?.preferredLanguage || "en-US";
@@ -107,6 +132,14 @@ export default function CallManager() {
   const isSummaryRecorderRef = useRef(false);
   const iceServersRef = useRef(FALLBACK_ICE_SERVERS);
   const speechRecorderRef = useRef(null);
+  const vadAudioContextRef = useRef(null);
+  const vadIntervalRef = useRef(null);
+  const vadHasSpeechRef = useRef(false);
+  const vadSilenceStartRef = useRef(null);
+  const vadChunkStartRef = useRef(0);
+  const noteRecorderRef = useRef(null);
+  const noteChunksRef = useRef([]);
+  const noteSavedTimeoutRef = useRef(null);
   const translationEnabledRef = useRef(false);
   const myLanguageRef = useRef(myLanguage);
   const peerLanguageRef = useRef("en-US");
@@ -198,6 +231,15 @@ export default function CallManager() {
     []
   );
 
+  const stopVoiceActivityMonitor = useCallback(() => {
+    if (vadIntervalRef.current) {
+      window.clearInterval(vadIntervalRef.current);
+      vadIntervalRef.current = null;
+    }
+    vadAudioContextRef.current?.close().catch(() => {});
+    vadAudioContextRef.current = null;
+  }, []);
+
   const stopSpeechRecording = useCallback(() => {
     if (
       speechRecorderRef.current &&
@@ -210,6 +252,60 @@ export default function CallManager() {
       }
     }
     speechRecorderRef.current = null;
+    stopVoiceActivityMonitor();
+  }, [stopVoiceActivityMonitor]);
+
+  // Feeds the local mic into an analyser once per translation session and
+  // watches its volume every 100ms, rather than reacting to a fixed timer —
+  // this is what lets a "chunk" mean one real spoken phrase instead of an
+  // arbitrary 2.5s slice that may cut a sentence in half.
+  const startVoiceActivityMonitor = useCallback(() => {
+    if (vadIntervalRef.current || !localStreamRef.current) return;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    let audioContext;
+    try {
+      audioContext = new AudioContextClass();
+      const source = audioContext.createMediaStreamSource(localStreamRef.current);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 2048;
+      source.connect(analyser);
+      const buffer = new Uint8Array(analyser.fftSize);
+      vadAudioContextRef.current = audioContext;
+
+      vadIntervalRef.current = window.setInterval(() => {
+        if (!translationEnabledRef.current) return;
+        analyser.getByteTimeDomainData(buffer);
+        let sumSquares = 0;
+        for (let i = 0; i < buffer.length; i += 1) {
+          const deviation = buffer[i] - 128;
+          sumSquares += deviation * deviation;
+        }
+        const rms = Math.sqrt(sumSquares / buffer.length);
+        const now = Date.now();
+
+        if (rms > VAD_SPEAKING_RMS_THRESHOLD) {
+          vadHasSpeechRef.current = true;
+          vadSilenceStartRef.current = null;
+        } else if (vadHasSpeechRef.current) {
+          if (vadSilenceStartRef.current === null) {
+            vadSilenceStartRef.current = now;
+          } else if (now - vadSilenceStartRef.current >= VAD_SILENCE_STOP_MS) {
+            const recorder = speechRecorderRef.current;
+            if (recorder && recorder.state !== "inactive") recorder.stop();
+            return;
+          }
+        }
+
+        if (now - vadChunkStartRef.current >= VAD_MAX_CHUNK_MS) {
+          const recorder = speechRecorderRef.current;
+          if (recorder && recorder.state !== "inactive") recorder.stop();
+        }
+      }, VAD_SAMPLE_INTERVAL_MS);
+    } catch {
+      audioContext?.close().catch(() => {});
+    }
   }, []);
 
   const startSpeechRecording = useCallback(() => {
@@ -226,7 +322,9 @@ export default function CallManager() {
     // timesliced recording carries a valid container header, so every
     // slice after it fails Whisper's format check as a standalone file.
     // Stopping and starting a new recorder each cycle guarantees every
-    // blob is a complete, independently-decodable audio file.
+    // blob is a complete, independently-decodable audio file. The stop
+    // itself is now triggered by the voice-activity monitor detecting a
+    // pause (or the max-duration safety cap), not a fixed timer.
     const recordNextChunk = () => {
       if (!translationEnabledRef.current || !localStreamRef.current) {
         speechRecorderRef.current = null;
@@ -242,6 +340,9 @@ export default function CallManager() {
         recorder = new MediaRecorder(localStreamRef.current);
       }
       const chunks = [];
+      vadHasSpeechRef.current = false;
+      vadSilenceStartRef.current = null;
+      vadChunkStartRef.current = Date.now();
       recorder.ondataavailable = (event) => {
         if (event.data && event.data.size) chunks.push(event.data);
       };
@@ -249,6 +350,7 @@ export default function CallManager() {
         const callId = callRef.current.callId;
         if (
           chunks.length &&
+          vadHasSpeechRef.current &&
           translationEnabledRef.current &&
           callId &&
           callRef.current.status === "active"
@@ -256,6 +358,7 @@ export default function CallManager() {
           const blob = new Blob(chunks, {
             type: recorder.mimeType || mimeType || "audio/webm",
           });
+          const durationMs = Date.now() - vadChunkStartRef.current;
           const reader = new FileReader();
           reader.onload = () => {
             const base64 = String(reader.result).split(",")[1];
@@ -265,6 +368,7 @@ export default function CallManager() {
               audio: base64,
               mimeType: recorder.mimeType || mimeType || "audio/webm",
               targetLang: peerLanguageRef.current,
+              durationMs,
             });
           };
           reader.readAsDataURL(blob);
@@ -278,13 +382,19 @@ export default function CallManager() {
         speechRecorderRef.current = null;
         return;
       }
+      // Fallback safety net in case the voice-activity monitor never
+      // initialized (no AudioContext support) — without it a chunk could
+      // otherwise run forever.
       window.setTimeout(() => {
-        if (recorder.state !== "inactive") recorder.stop();
-      }, 2500);
+        if (!vadIntervalRef.current && recorder.state !== "inactive") {
+          recorder.stop();
+        }
+      }, VAD_MAX_CHUNK_MS);
     };
 
     recordNextChunk();
-  }, []);
+    startVoiceActivityMonitor();
+  }, [startVoiceActivityMonitor]);
 
   // A single toggle drives translation for the whole call: turning it on
   // starts our own mic capture AND tells the peer's client to start theirs,
@@ -295,6 +405,9 @@ export default function CallManager() {
       translationEnabledRef.current = next;
       setTranslationEnabled(next);
       if (next) {
+        // Clear any earlier "blocked" notice - this is a fresh attempt, and the
+        // backend will send call:translation-blocked again if it still applies.
+        setTranslationBlockedReason(null);
         startSpeechRecording();
       } else {
         stopSpeechRecording();
@@ -398,6 +511,7 @@ export default function CallManager() {
     peerConnectionRef.current = null;
     queuedCandidatesRef.current = [];
     stopMedia();
+    setMinimized(false);
     setIsMuted(false);
     setIsCameraOff(false);
     setCallSeconds(0);
@@ -406,6 +520,7 @@ export default function CallManager() {
     translationEnabledRef.current = false;
     setTranslationEnabled(false);
     setTranslation(null);
+    setTranslationBlockedReason(null);
     setPeerLanguage("en-US");
     peerLanguageRef.current = "en-US";
     window.speechSynthesis?.cancel();
@@ -414,6 +529,9 @@ export default function CallManager() {
       translationAudioRef.current.removeAttribute("src");
     }
     stopSpeechRecording();
+    noteRecorderRef.current?.stop();
+    clearTimeout(noteSavedTimeoutRef.current);
+    setNoteState("idle");
     updateCall(initialCall);
   }, [stopMedia, stopSpeechRecording, updateCall, updateSummaryState]);
 
@@ -474,9 +592,11 @@ export default function CallManager() {
         }
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = remoteStreamRef.current;
+          remoteVideoRef.current.muted = translationEnabledRef.current;
         }
         if (remoteAudioRef.current) {
           remoteAudioRef.current.srcObject = remoteStreamRef.current;
+          remoteAudioRef.current.muted = translationEnabledRef.current;
         }
         updateCall((current) => ({ ...current, status: "active" }));
       };
@@ -512,11 +632,26 @@ export default function CallManager() {
     }
     if (remoteVideoRef.current) {
       remoteVideoRef.current.srcObject = remoteStreamRef.current;
+      remoteVideoRef.current.muted = translationEnabledRef.current;
     }
     if (remoteAudioRef.current) {
       remoteAudioRef.current.srcObject = remoteStreamRef.current;
+      remoteAudioRef.current.muted = translationEnabledRef.current;
     }
   }, [call.status, call.mode]);
+
+  // While translation is on, the listener should hear ONLY the translated
+  // audio — not the peer's raw voice underneath it. Muting the raw WebRTC
+  // playback (rather than renegotiating the connection to drop the audio
+  // track) is what actually replaces the voice instead of layering both.
+  useEffect(() => {
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.muted = translationEnabled;
+    }
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.muted = translationEnabled;
+    }
+  }, [translationEnabled]);
 
   useEffect(() => {
     if (call.status !== "active") return undefined;
@@ -769,6 +904,14 @@ export default function CallManager() {
       if (callRef.current.callId !== callId) return;
       toggleTranslation(Boolean(enabled));
     };
+    // Server-side gate: the backend only ever sends this when it refused to
+    // process a chunk because of plan/usage, so switch translation back off
+    // locally instead of leaving the mic recording chunks that will never work.
+    const handleTranslationBlocked = ({ callId, reason }) => {
+      if (callRef.current.callId !== callId) return;
+      setTranslationBlockedReason(reason || "upgrade_required");
+      toggleTranslation(false);
+    };
 
     window.addEventListener("ripple:start-call", startCall);
     socket.on("call:incoming", handleIncoming);
@@ -790,6 +933,7 @@ export default function CallManager() {
     socket.on("call:translation-result", handleTranslationResult);
     socket.on("call:peer-language", handlePeerLanguage);
     socket.on("call:translation-toggle", handlePeerTranslationToggle);
+    socket.on("call:translation-blocked", handleTranslationBlocked);
 
     return () => {
       window.removeEventListener("ripple:start-call", startCall);
@@ -812,6 +956,7 @@ export default function CallManager() {
       socket.off("call:translation-result", handleTranslationResult);
       socket.off("call:peer-language", handlePeerLanguage);
       socket.off("call:translation-toggle", handlePeerTranslationToggle);
+      socket.off("call:translation-blocked", handleTranslationBlocked);
     };
   }, [
     acquireMedia,
@@ -909,6 +1054,81 @@ export default function CallManager() {
     setIsCameraOff(nextCameraOff);
   };
 
+  // A manual, self-only note capture - independent of the translation
+  // pipeline above. It records only the local mic (localStreamRef.current),
+  // never the peer's audio, and is only ever started by an explicit tap.
+  const toggleNoteRecording = () => {
+    if (noteState === "recording") {
+      noteRecorderRef.current?.stop();
+      return;
+    }
+    if (noteState !== "idle" || !localStreamRef.current) return;
+
+    const mimeType = [
+      "audio/webm;codecs=opus",
+      "audio/webm",
+      "audio/mp4",
+    ].find((type) => MediaRecorder.isTypeSupported(type));
+    let recorder;
+    try {
+      recorder = new MediaRecorder(
+        localStreamRef.current,
+        mimeType ? { mimeType } : {}
+      );
+    } catch {
+      recorder = new MediaRecorder(localStreamRef.current);
+    }
+    noteChunksRef.current = [];
+
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) noteChunksRef.current.push(event.data);
+    };
+
+    recorder.onstop = async () => {
+      noteRecorderRef.current = null;
+      const blob = new Blob(noteChunksRef.current, {
+        type: mimeType || "audio/webm",
+      });
+      if (!blob.size) {
+        setNoteState("idle");
+        return;
+      }
+
+      setNoteState("saving");
+      try {
+        const formData = new FormData();
+        formData.append("audio", blob, "call-note.webm");
+        if (callRef.current.conversationId) {
+          formData.append("conversationId", callRef.current.conversationId);
+        }
+        if (callRef.current.callId) {
+          formData.append("callId", callRef.current.callId);
+        }
+        try {
+          formData.append(
+            "timezone",
+            Intl.DateTimeFormat().resolvedOptions().timeZone
+          );
+        } catch {
+          // No-op: the note still saves without a timezone hint.
+        }
+        await clientServer.post("/notes/voice", formData);
+        setNoteState("saved");
+        noteSavedTimeoutRef.current = setTimeout(
+          () => setNoteState("idle"),
+          2500
+        );
+      } catch (error) {
+        console.error("Could not save call note:", error.message);
+        setNoteState("idle");
+      }
+    };
+
+    noteRecorderRef.current = recorder;
+    recorder.start();
+    setNoteState("recording");
+  };
+
   const stopScreenShare = useCallback(async () => {
     if (!screenStreamRef.current) return;
     const sender = peerConnectionRef.current
@@ -1000,14 +1220,24 @@ export default function CallManager() {
   )}:${String(callSeconds % 60).padStart(2, "0")}`;
 
   return (
-    <div className={styles.backdrop} role="dialog" aria-modal="true">
+    <div
+      className={`${styles.backdrop} ${
+        minimized ? styles.backdropMinimized : ""
+      }`}
+      role="dialog"
+      aria-modal={!minimized}
+    >
       <section
         className={`${styles.callWindow} ${
           call.mode === "video" ? styles.videoCall : styles.audioCall
-        }`}
+        } ${minimized ? styles.callWindowMinimized : ""}`}
       >
         {call.mode === "video" && (
-          <div className={styles.videoStage}>
+          <div
+            className={`${styles.videoStage} ${
+              minimized ? styles.hiddenMedia : ""
+            }`}
+          >
             <video ref={remoteVideoRef} autoPlay playsInline />
             {remoteIsSharing && (
               <span className={styles.shareNotice}>
@@ -1028,195 +1258,290 @@ export default function CallManager() {
         {call.mode === "audio" && <audio ref={remoteAudioRef} autoPlay />}
         <audio ref={translationAudioRef} />
 
-        <div
-          className={`${styles.callDetails} ${
-            call.status === "active" ? styles.activeDetails : ""
-          }`}
-        >
-          <span className={styles.callAvatar}>
-            {hasPicture ? (
-              <img src={call.peer.profilePicture} alt="" />
-            ) : (
-              initials(call.peer?.name)
-            )}
-          </span>
-          <div className={styles.identity}>
-            <strong>{call.peer?.name || "SocialHub member"}</strong>
-            <p>
-              {statusText}
-              {call.status === "active" ? ` · ${duration}` : ""}
-            </p>
-          </div>
-          {summaryState === "recording" && (
-            <span className={styles.recordingBadge}>
-              <i />
-              Summary recording on
+        {minimized ? (
+          <div
+            className={styles.minimizedBar}
+            role="button"
+            tabIndex={0}
+            onClick={() => setMinimized(false)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                setMinimized(false);
+              }
+            }}
+            aria-label="Return to call"
+          >
+            <span className={styles.callAvatar}>
+              {hasPicture ? (
+                <img src={call.peer.profilePicture} alt="" />
+              ) : (
+                initials(call.peer?.name)
+              )}
             </span>
-          )}
-        </div>
-
-        {summaryState === "consent" && (
-          <div className={styles.consentPrompt}>
-            <div>
-              <strong>Allow a call summary?</strong>
-              <span>
-                Audio will be recorded and processed after the call. The raw
-                recording will not be saved.
-              </span>
+            <div className={styles.minimizedInfo}>
+              <strong>{call.peer?.name || "SocialHub member"}</strong>
+              <p>{call.status === "active" ? duration : statusText}</p>
             </div>
-            <button type="button" onClick={() => respondToSummary(false)}>
-              Not now
-            </button>
             <button
-              className={styles.allowSummary}
               type="button"
-              onClick={() => respondToSummary(true)}
+              className={styles.minimizedEnd}
+              onClick={(event) => {
+                event.stopPropagation();
+                endCall();
+              }}
+              aria-label="End call"
             >
-              Allow
+              <PhoneIcon />
             </button>
           </div>
-        )}
-
-        {translationEnabled && !translation && (
-          <div className={styles.translationStatus}>
-            <span className={styles.liveDot} />
-            Live translation on
-            {peerLanguage !== myLanguage && (
-              <>
-                {" "}
-                · {LANGUAGES[myLanguage]?.flag} → {LANGUAGES[peerLanguage]?.flag}
-              </>
+        ) : (
+          <>
+            {call.status === "active" && (
+              <button
+                type="button"
+                className={styles.minimizeTrigger}
+                onClick={() => setMinimized(true)}
+                aria-label="Minimize call and return to the app"
+              >
+                <MinimizeIcon />
+              </button>
             )}
-          </div>
-        )}
 
-        {translation && (
-          <div className={styles.translationBar}>
-            <span className={styles.translationLabel}>
-              {displayForDetectedLanguage(translation.sourceLang).flag}
-              {" → "}
-              {LANGUAGES[translation.targetLang]?.flag || "🌐"}
-            </span>
-            <p>{translation.translatedText}</p>
-          </div>
-        )}
+            <div
+              className={`${styles.callDetails} ${
+                call.status === "active" ? styles.activeDetails : ""
+              }`}
+            >
+              <span className={styles.callAvatar}>
+                {hasPicture ? (
+                  <img src={call.peer.profilePicture} alt="" />
+                ) : (
+                  initials(call.peer?.name)
+                )}
+              </span>
+              <div className={styles.identity}>
+                <strong>{call.peer?.name || "SocialHub member"}</strong>
+                <p>
+                  {statusText}
+                  {call.status === "active" ? ` · ${duration}` : ""}
+                </p>
+              </div>
+              {summaryState === "recording" && (
+                <span className={styles.recordingBadge}>
+                  <i />
+                  Summary recording on
+                </span>
+              )}
+              {noteState === "recording" && (
+                <span className={styles.recordingBadge}>
+                  <i />
+                  Taking a note...
+                </span>
+              )}
+              {noteState === "saved" && (
+                <span className={styles.recordingBadge}>Note saved</span>
+              )}
+            </div>
 
-        <div className={styles.callControls}>
-          {isIncoming ? (
-            <>
-              <button
-                className={styles.decline}
-                type="button"
-                onClick={endCall}
-              >
-                <PhoneIcon />
-                Decline
-              </button>
-              <button
-                className={styles.accept}
-                type="button"
-                onClick={acceptCall}
-              >
-                <PhoneIcon />
-                Accept
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                className={`${styles.controlButton} ${
-                  isMuted ? styles.controlActive : ""
-                }`}
-                type="button"
-                onClick={toggleMute}
-                disabled={!hasLocalMedia}
-                aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}
-              >
-                <MicIcon muted={isMuted} />
-                <span>{isMuted ? "Unmute" : "Mute"}</span>
-              </button>
-              {call.mode === "video" && (
+            {summaryState === "consent" && (
+              <div className={styles.consentPrompt}>
+                <div>
+                  <strong>Allow a call summary?</strong>
+                  <span>
+                    Audio will be recorded and processed after the call. The raw
+                    recording will not be saved.
+                  </span>
+                </div>
+                <button type="button" onClick={() => respondToSummary(false)}>
+                  Not now
+                </button>
+                <button
+                  className={styles.allowSummary}
+                  type="button"
+                  onClick={() => respondToSummary(true)}
+                >
+                  Allow
+                </button>
+              </div>
+            )}
+
+            {translationEnabled && !translation && (
+              <div className={styles.translationStatus}>
+                <span className={styles.liveDot} />
+                Live translation on
+                {peerLanguage !== myLanguage && (
+                  <>
+                    {" "}
+                    · {LANGUAGES[myLanguage]?.flag} → {LANGUAGES[peerLanguage]?.flag}
+                  </>
+                )}
+              </div>
+            )}
+
+            {translation && (
+              <div className={styles.translationBar}>
+                <span className={styles.translationLabel}>
+                  {displayForDetectedLanguage(translation.sourceLang).flag}
+                  {" → "}
+                  {LANGUAGES[translation.targetLang]?.flag || "🌐"}
+                </span>
+                <p>{translation.translatedText}</p>
+              </div>
+            )}
+
+            {translationBlockedReason && (
+              <div className={styles.translationBar}>
+                <p>
+                  Live call translation is a paid feature.{" "}
+                  <Link href="/dashboard/pricing" onClick={() => setTranslationBlockedReason(null)}>
+                    View plans
+                  </Link>
+                </p>
+              </div>
+            )}
+
+            <div className={styles.callControls}>
+              {isIncoming ? (
+                <>
+                  <button
+                    className={styles.decline}
+                    type="button"
+                    onClick={endCall}
+                  >
+                    <PhoneIcon />
+                    Decline
+                  </button>
+                  <button
+                    className={styles.accept}
+                    type="button"
+                    onClick={acceptCall}
+                  >
+                    <PhoneIcon />
+                    Accept
+                  </button>
+                </>
+              ) : (
                 <>
                   <button
                     className={`${styles.controlButton} ${
-                      isCameraOff ? styles.controlActive : ""
+                      isMuted ? styles.controlActive : ""
                     }`}
                     type="button"
-                    onClick={toggleCamera}
-                    disabled={!hasLocalMedia || isScreenSharing}
+                    onClick={toggleMute}
+                    disabled={!hasLocalMedia}
+                    aria-label={isMuted ? "Unmute microphone" : "Mute microphone"}
+                  >
+                    <MicIcon muted={isMuted} />
+                    <span>{isMuted ? "Unmute" : "Mute"}</span>
+                  </button>
+                  {call.mode === "video" && (
+                    <>
+                      <button
+                        className={`${styles.controlButton} ${
+                          isCameraOff ? styles.controlActive : ""
+                        }`}
+                        type="button"
+                        onClick={toggleCamera}
+                        disabled={!hasLocalMedia || isScreenSharing}
+                        aria-label={
+                          isCameraOff ? "Turn camera on" : "Turn camera off"
+                        }
+                      >
+                        <CameraIcon off={isCameraOff} />
+                        <span>{isCameraOff ? "Camera on" : "Camera"}</span>
+                      </button>
+                      <button
+                        className={`${styles.controlButton} ${
+                          isScreenSharing ? styles.sharing : ""
+                        }`}
+                        type="button"
+                        onClick={toggleScreenShare}
+                        disabled={call.status !== "active"}
+                        aria-label={
+                          isScreenSharing
+                            ? "Stop sharing screen"
+                            : "Share screen"
+                        }
+                      >
+                        <ScreenIcon />
+                        <span>{isScreenSharing ? "Stop share" : "Share"}</span>
+                      </button>
+                    </>
+                  )}
+                  <button
+                    className={`${styles.controlButton} ${
+                      noteState === "recording" ? styles.summaryActive : ""
+                    }`}
+                    type="button"
+                    onClick={toggleNoteRecording}
+                    disabled={
+                      call.status !== "active" ||
+                      !hasLocalMedia ||
+                      noteState === "saving"
+                    }
                     aria-label={
-                      isCameraOff ? "Turn camera on" : "Turn camera off"
+                      noteState === "recording" ? "Stop and save note" : "Take a note"
                     }
                   >
-                    <CameraIcon off={isCameraOff} />
-                    <span>{isCameraOff ? "Camera on" : "Camera"}</span>
+                    <NoteIcon />
+                    <span>
+                      {noteState === "recording"
+                        ? "Stop"
+                        : noteState === "saving"
+                          ? "Saving..."
+                          : "Note"}
+                    </span>
                   </button>
                   <button
                     className={`${styles.controlButton} ${
-                      isScreenSharing ? styles.sharing : ""
+                      summaryState === "recording" ? styles.summaryActive : ""
                     }`}
                     type="button"
-                    onClick={toggleScreenShare}
-                    disabled={call.status !== "active"}
-                    aria-label={
-                      isScreenSharing
-                        ? "Stop sharing screen"
-                        : "Share screen"
+                    onClick={requestSummary}
+                    disabled={
+                      call.status !== "active" || summaryState !== "idle"
                     }
+                    aria-label="Request an AI call summary"
                   >
-                    <ScreenIcon />
-                    <span>{isScreenSharing ? "Stop share" : "Share"}</span>
+                    <SummaryIcon />
+                    <span>
+                      {summaryState === "requested"
+                        ? "Waiting"
+                        : summaryState === "starting"
+                          ? "Starting"
+                        : summaryState === "recording"
+                          ? "Summary on"
+                          : summaryState === "declined"
+                            ? "Not allowed"
+                            : "Summarize"}
+                    </span>
+                  </button>
+                  <button
+                    className={`${styles.controlButton} ${
+                      translationEnabled ? styles.translationActive : ""
+                    }`}
+                    type="button"
+                    onClick={handleTranslationToggleClick}
+                    disabled={call.status !== "active"}
+                    aria-label="Toggle live translation"
+                  >
+                    <TranslateIcon />
+                    <span>{translationEnabled ? "Translate on" : "Translate"}</span>
+                  </button>
+                  <button
+                    className={`${styles.controlButton} ${styles.endControl}`}
+                    type="button"
+                    onClick={endCall}
+                    aria-label="End call"
+                  >
+                    <PhoneIcon />
+                    <span>End</span>
                   </button>
                 </>
               )}
-              <button
-                className={`${styles.controlButton} ${
-                  summaryState === "recording" ? styles.summaryActive : ""
-                }`}
-                type="button"
-                onClick={requestSummary}
-                disabled={
-                  call.status !== "active" || summaryState !== "idle"
-                }
-                aria-label="Request an AI call summary"
-              >
-                <SummaryIcon />
-                <span>
-                  {summaryState === "requested"
-                    ? "Waiting"
-                    : summaryState === "starting"
-                      ? "Starting"
-                    : summaryState === "recording"
-                      ? "Summary on"
-                      : summaryState === "declined"
-                        ? "Not allowed"
-                        : "Summarize"}
-                </span>
-              </button>
-              <button
-                className={`${styles.controlButton} ${
-                  translationEnabled ? styles.translationActive : ""
-                }`}
-                type="button"
-                onClick={handleTranslationToggleClick}
-                disabled={call.status !== "active"}
-                aria-label="Toggle live translation"
-              >
-                <TranslateIcon />
-                <span>{translationEnabled ? "Translate on" : "Translate"}</span>
-              </button>
-              <button
-                className={`${styles.controlButton} ${styles.endControl}`}
-                type="button"
-                onClick={endCall}
-                aria-label="End call"
-              >
-                <PhoneIcon />
-                <span>End</span>
-              </button>
-            </>
-          )}
-        </div>
+            </div>
+          </>
+        )}
       </section>
     </div>
   );

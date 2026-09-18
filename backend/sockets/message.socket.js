@@ -5,6 +5,7 @@ import {
   editMessage,
   markConversationMessagesRead,
   markMessageDelivered,
+  translateMessageForRecipients,
 } from "../services/message.service.js";
 
 const registerMessageHandlers = ({
@@ -45,6 +46,22 @@ const registerMessageHandlers = ({
           ok: true,
           messageId: message._id,
         });
+
+        // Never blocks message:send - translation lands moments later as a
+        // message:updated, the same event edits/deletes already use to patch
+        // a message in place, so the frontend needs no special handling for it.
+        translateMessageForRecipients({ message, memberIds })
+          .then((translated) => {
+            if (!translated) return;
+            memberIds.forEach((memberId) => {
+              io.to(`user:${memberId}`).emit("message:updated", {
+                message: translated,
+              });
+            });
+          })
+          .catch((error) =>
+            console.error("Message translation dispatch failed:", error.message)
+          );
       } catch (error) {
         if (error instanceof ApplicationError) {
           acknowledge({

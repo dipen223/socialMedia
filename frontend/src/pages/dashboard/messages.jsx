@@ -144,6 +144,16 @@ export default function MessagesPage() {
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editDraft, setEditDraft] = useState("");
   const [presenceByUser, setPresenceByUser] = useState({});
+  const [originalShownIds, setOriginalShownIds] = useState(() => new Set());
+
+  const toggleShowOriginal = (messageId) => {
+    setOriginalShownIds((previous) => {
+      const next = new Set(previous);
+      if (next.has(messageId)) next.delete(messageId);
+      else next.add(messageId);
+      return next;
+    });
+  };
 
   const profile = useSelector((state) => state.auth.user);
   const currentUser = profile?.userId || profile;
@@ -948,7 +958,30 @@ export default function MessagesPage() {
                                 )}
                               </div>
                             ))}
-                            {message.body && <p>{message.body}</p>}
+                            {message.body && (() => {
+                              const translation = !sentByMe
+                                ? message.translations?.find(
+                                    (entry) => entry.lang === currentUser?.preferredLanguage
+                                  )
+                                : null;
+                              const showingOriginal = originalShownIds.has(message._id);
+                              const displayText =
+                                translation && !showingOriginal ? translation.text : message.body;
+                              return (
+                                <>
+                                  <p>{displayText}</p>
+                                  {translation && (
+                                    <button
+                                      type="button"
+                                      className={styles.translationToggle}
+                                      onClick={() => toggleShowOriginal(message._id)}
+                                    >
+                                      {showingOriginal ? "See translation" : "Translated · See original"}
+                                    </button>
+                                  )}
+                                </>
+                              );
+                            })()}
                           </>
                         )}
                         <span>

@@ -45,6 +45,13 @@ const userSchema = new Schema({
         type: String,
         default: "default.jpg",
     },
+    // Drives which TTS voice stands in for this person when their speech gets
+    // translated for a call partner - not shown/used anywhere else.
+    voiceGender: {
+        type: String,
+        enum: ["female", "male"],
+        default: "female",
+    },
     createdAt: {
         type: Date,
         default: Date.now,
@@ -52,6 +59,43 @@ const userSchema = new Schema({
     token: {
         type: String,
         default: "",
+    },
+    plan: {
+        type: String,
+        enum: ["free", "plus"],
+        default: "free",
+    },
+    subscriptionStatus: {
+        // Mirrors Stripe subscription status ("active", "past_due", "canceled", ...).
+        // null while the user has never subscribed.
+        type: String,
+        default: null,
+    },
+    stripeCustomerId: {
+        type: String,
+        default: null,
+    },
+    stripeSubscriptionId: {
+        type: String,
+        default: null,
+    },
+    currentPeriodEnd: {
+        type: Date,
+        default: null,
+    },
+    translationSecondsUsed: {
+        type: Number,
+        default: 0,
+    },
+    translationCycleStart: {
+        type: Date,
+        default: Date.now,
+    },
+    // Whole minutes already reported to Stripe's usage meter this cycle -
+    // only the delta beyond this gets reported, so a chunk never gets billed twice.
+    translationOverageMinutesReported: {
+        type: Number,
+        default: 0,
     },
 });
 

@@ -145,6 +145,19 @@ const messageSchema = new Schema({
         ],
         default: [],
     },
+    // One entry per distinct language a recipient reads in, only for languages
+    // that differ from the sender's - populated asynchronously after the
+    // message is created, not blocking send.
+    translations: {
+        type: [
+            {
+                _id: false,
+                lang: { type: String, required: true },
+                text: { type: String, required: true },
+            },
+        ],
+        default: [],
+    },
     editedAt: {
         type: Date,
         default: null,
