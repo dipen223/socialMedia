@@ -5,6 +5,7 @@ import {
     scorePost,
     rankPosts,
     HALF_LIFE_HOURS,
+    MIN_DECAY,
 } from "../services/feedRanking.service.js";
 
 let passed = 0;
@@ -105,6 +106,26 @@ console.log("7) rankPosts sorts best-first and preserves posts");
     check("best post (fresh + popular) sorts first", ranked[0]._id === "b");
     check("worst post (old + empty) sorts last", ranked[2]._id === "a");
     check("each ranked post carries its feedScore", typeof ranked[0].feedScore === "number");
+}
+
+console.log("8) decay floor - engagement still matters for very old posts");
+{
+    // Regression test for a real bug: without a floor, two 1000+ hour-old
+    // posts both decay so close to zero that their engagement score gets
+    // multiplied away to nothing, and they end up scoring identically
+    // (just the flat affinity bonus) regardless of how different their
+    // engagement actually was - the exact "why is a 3-comment post not
+    // beating a 1-comment post" report that caught this.
+    const oldQuiet = post({ createdAt: hoursAgo(1160), likedBy: ["a", "b"], commentCount: 1 });
+    const oldPopular = post({ createdAt: hoursAgo(1646), likedBy: ["a", "b"], commentCount: 3 });
+    check(
+        "decay never drops below MIN_DECAY, even far past many half-lives",
+        recencyDecay(5000) === MIN_DECAY
+    );
+    check(
+        "an old post with more comments still outranks an old post with fewer, post-floor",
+        scorePost(oldPopular, { isConnection: true }) > scorePost(oldQuiet, { isConnection: true })
+    );
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);
