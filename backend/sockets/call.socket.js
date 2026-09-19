@@ -26,6 +26,12 @@ const MIN_AUDIO_BYTES = 2000;
 // Bounds concurrent OpenAI calls per speaker if chunks back up faster than
 // they're processed (slow network, degraded API) — load-shedding, not a queue.
 const MAX_CONCURRENT_TRANSLATIONS_PER_SPEAKER = 2;
+// Live captions: partial phrases are translated as the speaker talks so the
+// listener sees text almost immediately. They're unmetered, so they're rate
+// limited per speaker and capped in size.
+const MAX_TEXT_CHARS = 600;
+const INTERIM_MIN_GAP_MS = 700;
+const VOICE_MODES = new Set(["captions", "browser", "natural"]);
 // Whisper commonly hallucinates one of these short phrases on silence/noise.
 const SILENCE_ARTIFACTS = new Set(["you", "thank you", "thank you.", "thanks for watching", "..."]);
 
@@ -123,37 +129,102 @@ const getSpeakerBilling = async (call, userId) => {
     return billing;
 };
 
+const peerUserIdOf = (call, speakerId) =>
+    speakerId === call.callerId ? call.calleeId : call.callerId;
+
+const wantsNaturalVoice = (call, speakerId) =>
+    call.voiceModes[peerUserIdOf(call, speakerId)] === "natural";
+
+// The natural (server-generated) voice is slow relative to the caption, so it
+// is sent as its own event after the text has already been shown. If it fails
+// the event still goes out without audio, and the listener's browser voice
+// reads the text instead.
+const sendNaturalVoice = async ({ io, socket, call, speakerId, translatedText, targetLang, segmentId }) => {
+    const startedAt = Date.now();
+    let audio;
+    try {
+        const speechBuffer = await synthesizeSpeech({
+            text: translatedText,
+            language: targetLang,
+            voiceGender: call.voiceGenders?.[speakerId],
+        });
+        audio = { url: `data:audio/mpeg;base64,${speechBuffer.toString("base64")}` };
+    } catch (ttsError) {
+        console.error(`Translation TTS failed for call ${call.callId}:`, ttsError.message);
+    }
+    if (!calls.has(call.callId)) return Date.now() - startedAt;
+
+    emitToCallPeer(io, socket, call, "call:translation-audio", {
+        callId: call.callId,
+        segmentId,
+        speakerId,
+        translatedText,
+        targetLang,
+        audio,
+    });
+    return Date.now() - startedAt;
+};
+
+// Translate a piece of already-transcribed text (from the speaker's browser
+// speech recognition) and send the caption straight back. Partial phrases
+// (isFinal false) only update the on-screen caption; only finals may trigger
+// a spoken voice.
+const processTranslationText = async ({
+    io, socket, call, speakerId, text, targetLang, segmentId, isFinal,
+}) => {
+    const startedAt = Date.now();
+    try {
+        const translatedText = await translateSpeechText({ text, targetLang });
+        if (!translatedText || !calls.has(call.callId)) return;
+        const mtMs = Date.now() - startedAt;
+
+        emitToCallPeer(io, socket, call, "call:translation-result", {
+            callId: call.callId,
+            originalText: text,
+            translatedText,
+            sourceLang: call.languages[speakerId]?.split("-")[0],
+            targetLang,
+            speakerId,
+            segmentId,
+            final: isFinal,
+        });
+
+        let ttsMs = 0;
+        if (isFinal && wantsNaturalVoice(call, speakerId)) {
+            ttsMs = await sendNaturalVoice({ io, socket, call, speakerId, translatedText, targetLang, segmentId });
+        }
+        if (isFinal) {
+            console.log(`[translate:text] call=${call.callId} caption=${mtMs}ms tts=${ttsMs}ms`);
+        }
+    } catch (error) {
+        console.error(`Text translation failed for call ${call.callId}:`, error.message);
+    }
+};
+
+// Fallback path for browsers without speech recognition (or where it fails):
+// the client uploads the recorded phrase and the server transcribes it. The
+// caption goes out as soon as it's translated - the voice, if wanted, follows.
 const processTranslationChunk = async ({
     io, socket, call, speakerId, audioBase64, mimeType, targetLang,
 }) => {
     try {
+        const startedAt = Date.now();
         const buffer = Buffer.from(audioBase64, "base64");
         if (buffer.length < MIN_AUDIO_BYTES) return;
 
         const { text: originalText, language: detectedLang } = await transcribeAudio({ buffer, mimeType });
         if (!isMeaningfulTranscript(originalText) || !calls.has(call.callId)) return;
+        const sttMs = Date.now() - startedAt;
 
         // The speaker is already talking in the language the listener wants
-        // to hear — nothing to translate, so skip the MT/TTS calls entirely.
+        // to hear - nothing to translate, so skip the MT/TTS calls entirely.
         if (detectedLang && detectedLang === targetLang.split("-")[0]) return;
 
         const translatedText = await translateSpeechText({ text: originalText, targetLang });
         if (!translatedText || !calls.has(call.callId)) return;
+        const captionMs = Date.now() - startedAt;
 
-        let audioUrl;
-        try {
-            const speechBuffer = await synthesizeSpeech({
-                text: translatedText,
-                language: targetLang,
-                voiceGender: call.voiceGenders?.[speakerId],
-            });
-            audioUrl = `data:audio/mpeg;base64,${speechBuffer.toString("base64")}`;
-        } catch (ttsError) {
-            // No audio.url -> frontend falls back to browser SpeechSynthesis.
-            console.error(`Translation TTS failed for call ${call.callId}:`, ttsError.message);
-        }
-        if (!calls.has(call.callId)) return;
-
+        const segmentId = Date.now();
         emitToCallPeer(io, socket, call, "call:translation-result", {
             callId: call.callId,
             originalText,
@@ -161,11 +232,97 @@ const processTranslationChunk = async ({
             sourceLang: detectedLang,
             targetLang,
             speakerId,
-            audio: audioUrl ? { url: audioUrl } : undefined,
+            segmentId,
+            final: true,
         });
+
+        let ttsMs = 0;
+        if (wantsNaturalVoice(call, speakerId)) {
+            ttsMs = await sendNaturalVoice({ io, socket, call, speakerId, translatedText, targetLang, segmentId });
+        }
+        console.log(`[translate:audio] call=${call.callId} stt=${sttMs}ms caption=${captionMs}ms tts=${ttsMs}ms`);
     } catch (error) {
         console.error(`Translation pipeline failed for call ${call.callId}:`, error.message);
     }
+};
+
+// Shared gate for both translation paths: plan check, load-shedding, and (for
+// finals) usage metering. Returns a release function when the work is
+// admitted, or null when it should be dropped.
+const admitTranslation = async ({ socket, call, speakerId, durationMs, interim = false }) => {
+    let speakerBilling;
+    try {
+        speakerBilling = await getSpeakerBilling(call, speakerId);
+    } catch (error) {
+        console.error(`Could not load billing state for ${speakerId}:`, error.message);
+        return null;
+    }
+    if (!calls.has(call.callId)) return null;
+
+    // Free has no translation access at all - Plus never gets hard-blocked,
+    // minutes past its 200/month included allowance just bill automatically
+    // as overage (see below) instead of cutting a call off mid-sentence.
+    if (BILLING_ENFORCED && speakerBilling.limitSeconds === 0) {
+        socket.emit("call:translation-blocked", { callId: call.callId, reason: "upgrade_required" });
+        return null;
+    }
+
+    if (interim) {
+        const now = Date.now();
+        if (
+            call.pendingInterims[speakerId] ||
+            now - (call.lastInterimAt[speakerId] || 0) < INTERIM_MIN_GAP_MS
+        ) {
+            return null;
+        }
+        call.lastInterimAt[speakerId] = now;
+        call.pendingInterims[speakerId] = 1;
+        return () => {
+            call.pendingInterims[speakerId] = 0;
+        };
+    }
+
+    const inFlight = call.pendingTranslations[speakerId] || 0;
+    if (inFlight >= MAX_CONCURRENT_TRANSLATIONS_PER_SPEAKER) return null;
+    call.pendingTranslations[speakerId] = inFlight + 1;
+
+    // Charged on acceptance, not on a successful translation - a chunk still
+    // costs an ASR call (and often MT/TTS too) even when it turns out to be
+    // silence or gets skipped, so usage should reflect what was attempted.
+    const chunkSeconds =
+        Math.min(Math.max(Number(durationMs) || 0, 0), MAX_CHUNK_DURATION_MS) / 1000;
+    speakerBilling.secondsUsed += chunkSeconds;
+    User.updateOne({ _id: speakerId }, { $inc: { translationSecondsUsed: chunkSeconds } }).catch(
+        (error) => console.error(`Could not record translation usage for ${speakerId}:`, error.message)
+    );
+
+    // Only the whole overage minutes newly crossed by THIS chunk get
+    // reported - never re-reporting what's already been sent to Stripe's
+    // meter is what keeps a chunk from ever being billed twice.
+    const overageMinutesTotal = Math.floor(
+        Math.max(0, speakerBilling.secondsUsed - speakerBilling.limitSeconds) / 60
+    );
+    const newOverageMinutes = overageMinutesTotal - speakerBilling.overageMinutesReported;
+    if (newOverageMinutes > 0 && speakerBilling.stripeCustomerId) {
+        speakerBilling.overageMinutesReported = overageMinutesTotal;
+        reportOverageUsage({
+            customerId: speakerBilling.stripeCustomerId,
+            minutes: newOverageMinutes,
+        })
+            .then(() =>
+                User.updateOne(
+                    { _id: speakerId },
+                    { $set: { translationOverageMinutesReported: overageMinutesTotal } }
+                )
+            )
+            .catch((error) =>
+                console.error(`Could not report translation overage for ${speakerId}:`, error.message)
+            );
+    }
+
+    return () => {
+        call.pendingTranslations[speakerId] = Math.max(0, (call.pendingTranslations[speakerId] || 1) - 1);
+    };
 };
 
 const registerCallHandlers = ({ io, socket }) => {
@@ -226,6 +383,9 @@ const registerCallHandlers = ({ io, socket }) => {
                 summaryConsent: null,
                 languages: {},
                 pendingTranslations: {},
+                pendingInterims: {},
+                lastInterimAt: {},
+                voiceModes: {},
                 billing: {},
                 voiceGenders,
             };
@@ -375,61 +535,13 @@ const registerCallHandlers = ({ io, socket }) => {
         if (!targetLang || !audioBase64) return;
 
         const speakerId = socket.user.id.toString();
-
-        let speakerBilling;
-        try {
-            speakerBilling = await getSpeakerBilling(call, speakerId);
-        } catch (error) {
-            console.error(`Could not load billing state for ${speakerId}:`, error.message);
-            return;
-        }
-        if (!calls.has(call.callId)) return;
-
-        // Free has no translation access at all - Plus never gets hard-blocked,
-        // minutes past its 200/month included allowance just bill automatically
-        // as overage (see below) instead of cutting a call off mid-sentence.
-        if (BILLING_ENFORCED && speakerBilling.limitSeconds === 0) {
-            socket.emit("call:translation-blocked", { callId: call.callId, reason: "upgrade_required" });
-            return;
-        }
-
-        const inFlight = call.pendingTranslations[speakerId] || 0;
-        if (inFlight >= MAX_CONCURRENT_TRANSLATIONS_PER_SPEAKER) return;
-        call.pendingTranslations[speakerId] = inFlight + 1;
-
-        // Charged on acceptance, not on a successful translation - a chunk still
-        // costs an ASR call (and often MT/TTS too) even when it turns out to be
-        // silence or gets skipped, so usage should reflect what was attempted.
-        const chunkSeconds =
-            Math.min(Math.max(Number(payload.durationMs) || 0, 0), MAX_CHUNK_DURATION_MS) / 1000;
-        speakerBilling.secondsUsed += chunkSeconds;
-        User.updateOne({ _id: speakerId }, { $inc: { translationSecondsUsed: chunkSeconds } }).catch(
-            (error) => console.error(`Could not record translation usage for ${speakerId}:`, error.message)
-        );
-
-        // Only the whole overage minutes newly crossed by THIS chunk get
-        // reported - never re-reporting what's already been sent to Stripe's
-        // meter is what keeps a chunk from ever being billed twice.
-        const overageMinutesTotal = Math.floor(
-            Math.max(0, speakerBilling.secondsUsed - speakerBilling.limitSeconds) / 60
-        );
-        const newOverageMinutes = overageMinutesTotal - speakerBilling.overageMinutesReported;
-        if (newOverageMinutes > 0 && speakerBilling.stripeCustomerId) {
-            speakerBilling.overageMinutesReported = overageMinutesTotal;
-            reportOverageUsage({
-                customerId: speakerBilling.stripeCustomerId,
-                minutes: newOverageMinutes,
-            })
-                .then(() =>
-                    User.updateOne(
-                        { _id: speakerId },
-                        { $set: { translationOverageMinutesReported: overageMinutesTotal } }
-                    )
-                )
-                .catch((error) =>
-                    console.error(`Could not report translation overage for ${speakerId}:`, error.message)
-                );
-        }
+        const release = await admitTranslation({
+            socket,
+            call,
+            speakerId,
+            durationMs: payload.durationMs,
+        });
+        if (!release) return;
 
         processTranslationChunk({
             io,
@@ -439,9 +551,69 @@ const registerCallHandlers = ({ io, socket }) => {
             audioBase64,
             mimeType: typeof payload.mimeType === "string" ? payload.mimeType : "audio/webm",
             targetLang,
-        }).finally(() => {
-            call.pendingTranslations[speakerId] = Math.max(0, (call.pendingTranslations[speakerId] || 1) - 1);
+        }).finally(release);
+    });
+
+    // Fast path: the speaker's browser already turned speech into text, so
+    // only the translation is left. Partial phrases (final: false) keep the
+    // listener's caption moving while the speaker is still talking.
+    socket.on("call:translate-text", async (payload = {}) => {
+        const call = calls.get(payload.callId);
+        if (
+            !call ||
+            call.status !== "active" ||
+            ![call.callerSocketId, call.calleeSocketId].includes(socket.id)
+        ) {
+            return;
+        }
+
+        const targetLang = SUPPORTED_TRANSLATION_LANGUAGES.has(payload.targetLang)
+            ? payload.targetLang
+            : null;
+        const text = typeof payload.text === "string" ? payload.text.trim().slice(0, MAX_TEXT_CHARS) : "";
+        const segmentId = Number(payload.segmentId);
+        const isFinal = payload.final !== false;
+        // Only finished phrases are logged - partials arrive several a second.
+        const drop = (reason) => {
+            if (isFinal) console.log(`[translate:drop] call=${call.callId} reason=${reason}`);
+        };
+        if (!targetLang) return drop("unsupported target language");
+        if (!isMeaningfulTranscript(text)) return drop("empty or silence-artifact text");
+        if (!Number.isFinite(segmentId)) return drop("bad segment id");
+
+        const speakerId = socket.user.id.toString();
+
+        // Same language on both ends - nothing to translate.
+        const speakerLang = call.languages[speakerId];
+        if (speakerLang && speakerLang.split("-")[0] === targetLang.split("-")[0]) {
+            return drop(`same language (${speakerLang} -> ${targetLang})`);
+        }
+        if (isFinal) console.log(`[translate:recv] call=${call.callId} ${speakerLang || "?"} -> ${targetLang} "${text.slice(0, 40)}"`);
+
+        const release = await admitTranslation({
+            socket,
+            call,
+            speakerId,
+            durationMs: isFinal ? payload.durationMs : 0,
+            interim: !isFinal,
         });
+        if (!release) return drop("not admitted (plan, rate or concurrency limit)");
+
+        processTranslationText({
+            io, socket, call, speakerId, text, targetLang, segmentId, isFinal,
+        }).finally(release);
+    });
+
+    // How the listener wants to hear translations: captions only, their own
+    // browser's voice, or the server-generated natural voice. Only "natural"
+    // costs the server anything, so it's the only mode it needs to know about.
+    socket.on("call:set-voice-mode", (payload = {}) => {
+        const call = calls.get(payload.callId);
+        if (!call || ![call.callerSocketId, call.calleeSocketId].includes(socket.id)) {
+            return;
+        }
+        if (!VOICE_MODES.has(payload.mode)) return;
+        call.voiceModes[socket.user.id.toString()] = payload.mode;
     });
 
     socket.on("call:summary-request", (payload = {}) => {
