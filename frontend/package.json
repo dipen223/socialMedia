@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node scripts/test-live-translation.mjs"
+    "test": "node scripts/test-live-translation.mjs && node scripts/test-onboarding.mjs"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.12.0",

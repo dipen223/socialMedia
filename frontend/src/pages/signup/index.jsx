@@ -30,7 +30,9 @@ export default function Signup() {
 
     try {
       await dispatch(registerUser(form)).unwrap();
-      router.push("/dashboard");
+      // New accounts start with the welcome flow (language, people) - existing
+      // users signing in still go straight to the feed.
+      router.push("/onboarding");
     } catch {
      
     }
