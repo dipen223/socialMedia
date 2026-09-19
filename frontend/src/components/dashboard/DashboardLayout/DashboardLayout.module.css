@@ -22,7 +22,7 @@
   display: grid;
   min-height: 100vh;
   place-items: center;
-  color: #607068;
+  color: var(--text-muted);
 }
 .wideLayout {
   grid-template-columns: 260px minmax(0, 1fr);

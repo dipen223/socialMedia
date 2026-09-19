@@ -11,6 +11,7 @@ postsRouter.get("/hashtag/:tag",auth,postsController.getPostsByHashtag);
 postsRouter.get("/saved_posts",auth,postsController.getSavedPosts);
 postsRouter.post("/media/upload-signature", auth, postsController.getUploadSignature);
 postsRouter.post("/post",auth,postsController.createPost);
+postsRouter.post("/post/:postId/repost", auth, postsController.repostPost);
 postsRouter.patch("/post/:postId", auth, postsController.updatePost);
 postsRouter.delete("/post/:postId",auth,postsController.deletePost);
 postsRouter.patch(

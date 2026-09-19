@@ -3,11 +3,11 @@
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: #eff6ff;
   border: 1px solid #bfdbfe;
   color: #1d4ed8;
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 600;
 }
 
@@ -28,7 +28,7 @@
   border: none;
   background: transparent;
   color: inherit;
-  font-size: 16px;
+  font-size: var(--text-base);
   line-height: 1;
   cursor: pointer;
   padding: 0 2px;

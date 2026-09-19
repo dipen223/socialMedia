@@ -149,11 +149,14 @@ export default function CreatePost() {
     }
     setMedia(file);
     event.target.value = "";
+
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!body.trim()) return;
+
+    // Text or media - a photo/video with no caption is a valid post.
+    if (!body.trim() && !media && !generatedImage) return;
 
     try {
       await dispatch(createNewPost({ body: body.trim(), media, generatedMedia: generatedImage })).unwrap();
@@ -318,7 +321,13 @@ export default function CreatePost() {
 
               <footer className={styles.modalFooter}>
                 <button type="button" onClick={closeModal} disabled={isBusy}>Cancel</button>
-                <button type="submit" disabled={isBusy || !body.trim()}>{isCreating ? "Posting…" : "Post"}</button>
+                {/* Text or media - a caption alone or a photo/video alone both post. */}
+                <button
+                  type="submit"
+                  disabled={isBusy || (!body.trim() && !media && !generatedImage)}
+                >
+                  {isCreating ? "Posting…" : "Post"}
+                </button>
               </footer>
             </form>
           </section>

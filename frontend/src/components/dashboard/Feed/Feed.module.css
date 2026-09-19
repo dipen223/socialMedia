@@ -4,8 +4,8 @@
 }
 
 .empty {
-  border: 1px solid #dfe8e2;
-  border-radius: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   background: #fff;
   box-shadow: 0 10px 30px rgba(23, 37, 30, 0.05);
 }
@@ -18,8 +18,8 @@
 }
 
 .empty p {
-  color: #718078;
-  font-size: 12px;
+  color: var(--text-subtle);
+  font-size: var(--text-xs);
 }
 
 
@@ -30,6 +30,6 @@
 
 .empty h2 {
   margin-bottom: 7px;
-  color: #17251e;
-  font-size: 20px;
+  color: var(--text);
+  font-size: var(--text-lg);
 }

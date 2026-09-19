@@ -4,6 +4,13 @@ import { useSelector } from "react-redux";
 import { getSocket } from "@/config/socket";
 import { clientServer } from "@/config";
 import { LANGUAGES, displayForDetectedLanguage } from "@/config/languages";
+import {
+  shouldSendInterim,
+  shouldApplySegment,
+  isFatalRecognitionError,
+  recordAbort,
+  isAbortLoop,
+} from "@/config/liveTranslation";
 import styles from "./CallManager.module.css";
 
 const FALLBACK_ICE_SERVERS = [
@@ -110,6 +117,12 @@ export default function CallManager() {
   const [translation, setTranslation] = useState(null);
   const [peerLanguage, setPeerLanguage] = useState("en-US");
   const [translationBlockedReason, setTranslationBlockedReason] = useState(null);
+  // How incoming translations are delivered: captions only, this browser's own
+  // voice (instant, free), or the server's natural voice (slower, costs more).
+  const [voiceMode, setVoiceMode] = useState("browser");
+  // What the microphone side of translation is doing, shown in the call so a
+  // failure is visible instead of silent.
+  const [captureInfo, setCaptureInfo] = useState({ mode: "off", heard: "", error: "" });
   const [noteState, setNoteState] = useState("idle"); // idle | recording | saving | saved
   const profile = useSelector((state) => state.auth.user);
   const currentUser = profile?.userId || profile;
@@ -141,6 +154,21 @@ export default function CallManager() {
   const noteChunksRef = useRef([]);
   const noteSavedTimeoutRef = useRef(null);
   const translationEnabledRef = useRef(false);
+  const voiceModeRef = useRef("browser");
+  // True once a translation has actually arrived. Until then the peer's own
+  // voice is left at full volume, so a translation that never comes (recognition
+  // blocked, network, server error) can't leave the call silent.
+  const translationLiveRef = useRef(false);
+  const recognitionRef = useRef(null);
+  const recognitionRestartRef = useRef(null);
+  const abortTimesRef = useRef([]);
+  const startRecognitionRef = useRef(null);
+  const playNextAudioRef = useRef(null);
+  const segmentStartRef = useRef(0);
+  const interimRef = useRef({ text: "", sentAt: 0 });
+  const shownSegmentRef = useRef(null);
+  const audioQueueRef = useRef([]);
+  const audioPlayingRef = useRef(false);
   const myLanguageRef = useRef(myLanguage);
   const peerLanguageRef = useRef("en-US");
 
@@ -240,7 +268,23 @@ export default function CallManager() {
     vadAudioContextRef.current = null;
   }, []);
 
+  const stopBrowserRecognition = useCallback(() => {
+    window.clearTimeout(recognitionRestartRef.current);
+    const recognition = recognitionRef.current;
+    recognitionRef.current = null;
+    if (!recognition) return;
+    recognition.onresult = null;
+    recognition.onerror = null;
+    recognition.onend = null;
+    try {
+      recognition.abort();
+    } catch {
+      // Already stopped.
+    }
+  }, []);
+
   const stopSpeechRecording = useCallback(() => {
+    stopBrowserRecognition();
     if (
       speechRecorderRef.current &&
       speechRecorderRef.current.state !== "inactive"
@@ -253,7 +297,7 @@ export default function CallManager() {
     }
     speechRecorderRef.current = null;
     stopVoiceActivityMonitor();
-  }, [stopVoiceActivityMonitor]);
+  }, [stopBrowserRecognition, stopVoiceActivityMonitor]);
 
   // Feeds the local mic into an analyser once per translation session and
   // watches its volume every 100ms, rather than reacting to a fixed timer —
@@ -396,6 +440,148 @@ export default function CallManager() {
     startVoiceActivityMonitor();
   }, [startVoiceActivityMonitor]);
 
+  // The fast path: the browser's own speech recognition turns speech into text
+  // as it happens (no upload, no server transcription), so only the text needs
+  // translating. Partial phrases go out as the speaker talks to keep the
+  // listener's caption moving; a final goes out when the phrase ends. Returns
+  // false when the browser can't do it, so the caller can use the recorder path.
+  const startBrowserRecognition = useCallback(() => {
+    if (recognitionRef.current) return true;
+    const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!Recognition) return false;
+
+    const recognition = new Recognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+    recognition.lang = myLanguageRef.current;
+
+    const send = (text, final, segmentId, durationMs) => {
+      const callId = callRef.current.callId;
+      if (!callId || callRef.current.status !== "active") return;
+      getSocket()?.emit("call:translate-text", {
+        callId,
+        text,
+        final,
+        segmentId,
+        durationMs,
+        targetLang: peerLanguageRef.current,
+      });
+    };
+
+    recognition.onresult = (event) => {
+      // Our own translated voice comes out of the speakers and back into the
+      // mic - without this guard it would be transcribed and translated back
+      // to the other person in an endless loop.
+      const window_ = window.speechSynthesis;
+      const audioElement = translationAudioRef.current;
+      if (
+        window_?.speaking ||
+        audioPlayingRef.current ||
+        (audioElement && !audioElement.paused)
+      ) {
+        return;
+      }
+
+      let partial = "";
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const result = event.results[i];
+        const text = (result[0]?.transcript || "").trim();
+        if (!text) continue;
+        if (!segmentStartRef.current) segmentStartRef.current = Date.now();
+        setCaptureInfo((info) => ({ ...info, heard: text, error: "" }));
+
+        if (result.isFinal) {
+          send(text, true, segmentStartRef.current, Date.now() - segmentStartRef.current);
+          segmentStartRef.current = 0;
+          interimRef.current = { text: "", sentAt: 0 };
+        } else {
+          partial = partial ? `${partial} ${text}` : text;
+        }
+      }
+
+      const now = Date.now();
+      if (
+        partial &&
+        shouldSendInterim({
+          text: partial,
+          lastText: interimRef.current.text,
+          lastSentAt: interimRef.current.sentAt,
+          now,
+        })
+      ) {
+        interimRef.current = { text: partial, sentAt: now };
+        send(partial, false, segmentStartRef.current, 0);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      if (event.error === "aborted") {
+        abortTimesRef.current = recordAbort(abortTimesRef.current, Date.now());
+      }
+      const abortLoop = isAbortLoop(abortTimesRef.current);
+      if (!isFatalRecognitionError(event.error) && !abortLoop) {
+        setCaptureInfo((info) => ({ ...info, error: event.error }));
+        return;
+      }
+      abortTimesRef.current = [];
+      // Recognition can't work here (blocked, offline service, unsupported
+      // language) - switch to the server-side transcription path.
+      stopBrowserRecognition();
+      setCaptureInfo({ mode: "server", heard: "", error: event.error });
+      if (translationEnabledRef.current) startSpeechRecording();
+    };
+
+    // Browsers end a recognition session after a stretch of silence or a
+    // time limit - restart it for as long as translation is on.
+    recognition.onend = () => {
+      if (recognitionRef.current !== recognition) return;
+      recognitionRef.current = null;
+      if (!translationEnabledRef.current) return;
+      recognitionRestartRef.current = window.setTimeout(() => {
+        if (translationEnabledRef.current && !recognitionRef.current) {
+          startRecognitionRef.current?.();
+        }
+      }, 150);
+    };
+
+    recognitionRef.current = recognition;
+    try {
+      recognition.start();
+    } catch {
+      recognitionRef.current = null;
+      return false;
+    }
+    setCaptureInfo((info) => ({ ...info, mode: "browser" }));
+    return true;
+  }, [startSpeechRecording, stopBrowserRecognition]);
+
+  useEffect(() => {
+    startRecognitionRef.current = startBrowserRecognition;
+  }, [startBrowserRecognition]);
+
+  const startTranslationCapture = useCallback(() => {
+    if (startBrowserRecognition()) return;
+    setCaptureInfo({ mode: "server", heard: "", error: "" });
+    startSpeechRecording();
+  }, [startBrowserRecognition, startSpeechRecording]);
+
+  // The peer's own voice is never muted - once a translated voice is really
+  // coming through it is turned down (like an interpreter's booth) so it can
+  // still be heard underneath, and it is at full volume whenever there is no
+  // translated voice to listen to.
+  const applyRemoteAudioLevel = useCallback(() => {
+    const ducked =
+      translationEnabledRef.current &&
+      voiceModeRef.current !== "captions" &&
+      translationLiveRef.current;
+    [remoteVideoRef.current, remoteAudioRef.current].forEach((element) => {
+      if (!element) return;
+      element.muted = false;
+      element.volume = ducked ? 0.12 : 1;
+    });
+  }, []);
+
   // A single toggle drives translation for the whole call: turning it on
   // starts our own mic capture AND tells the peer's client to start theirs,
   // so both directions translate from one click — neither side has to
@@ -408,13 +594,16 @@ export default function CallManager() {
         // Clear any earlier "blocked" notice - this is a fresh attempt, and the
         // backend will send call:translation-blocked again if it still applies.
         setTranslationBlockedReason(null);
-        startSpeechRecording();
+        startTranslationCapture();
       } else {
         stopSpeechRecording();
         setTranslation(null);
+        translationLiveRef.current = false;
+        setCaptureInfo({ mode: "off", heard: "", error: "" });
+        applyRemoteAudioLevel();
       }
     },
-    [startSpeechRecording, stopSpeechRecording]
+    [applyRemoteAudioLevel, startTranslationCapture, stopSpeechRecording]
   );
 
   const handleTranslationToggleClick = useCallback(() => {
@@ -434,6 +623,23 @@ export default function CallManager() {
     peerLanguageRef.current = peerLanguage;
   }, [peerLanguage]);
 
+  // Tell the server how this listener wants translations delivered, so it only
+  // generates the natural voice when someone will actually hear it.
+  useEffect(() => {
+    voiceModeRef.current = voiceMode;
+    if (call.status === "active" && call.callId) {
+      getSocket()?.emit("call:set-voice-mode", {
+        callId: call.callId,
+        mode: voiceMode,
+      });
+    }
+    if (voiceMode !== "browser") window.speechSynthesis?.cancel();
+    if (voiceMode === "captions") {
+      audioQueueRef.current = [];
+      translationAudioRef.current?.pause();
+    }
+  }, [voiceMode, call.status, call.callId]);
+
   useEffect(() => {
     if (call.status === "active" && call.callId) {
       getSocket()?.emit("call:set-language", {
@@ -448,7 +654,9 @@ export default function CallManager() {
       return;
     }
     const synth = window.speechSynthesis;
-    synth.cancel();
+    // Let the previous sentence finish rather than cutting it off - only drop
+    // the backlog if the listener has fallen behind by more than one phrase.
+    if (synth.pending) synth.cancel();
     const normalize = (lang) => lang.toLowerCase().replace("_", "-");
     const target = normalize(language);
     const voices = synth.getVoices();
@@ -480,15 +688,40 @@ export default function CallManager() {
     return () => synth.removeEventListener("voiceschanged", loadVoices);
   }, []);
 
-  const playTranslationAudio = useCallback((url) => {
-    if (!translationAudioRef.current) return;
+  // Natural-voice clips play one after another; a new clip never cuts off the
+  // one still playing.
+  const playNextTranslationAudio = useCallback(() => {
     const element = translationAudioRef.current;
-    element.pause();
-    element.src = url;
+    if (!element) return;
+    const next = audioQueueRef.current.shift();
+    if (!next) {
+      audioPlayingRef.current = false;
+      return;
+    }
+    audioPlayingRef.current = true;
+    element.onended = () => playNextAudioRef.current?.();
+    element.onerror = () => playNextAudioRef.current?.();
+    element.src = next;
     element.play().catch(() => {
       // If audio playback is blocked, the subtitle still shows the result.
+      playNextAudioRef.current?.();
     });
   }, []);
+
+  useEffect(() => {
+    playNextAudioRef.current = playNextTranslationAudio;
+  }, [playNextTranslationAudio]);
+
+  const playTranslationAudio = useCallback(
+    (url) => {
+      // More than a couple queued means the listener is behind - drop the
+      // oldest so playback catches up instead of lagging further.
+      if (audioQueueRef.current.length >= 2) audioQueueRef.current.shift();
+      audioQueueRef.current.push(url);
+      if (!audioPlayingRef.current) playNextTranslationAudio();
+    },
+    [playNextTranslationAudio]
+  );
 
   const stopMedia = useCallback(() => {
     screenStreamRef.current?.getTracks().forEach((track) => {
@@ -524,6 +757,12 @@ export default function CallManager() {
     setPeerLanguage("en-US");
     peerLanguageRef.current = "en-US";
     window.speechSynthesis?.cancel();
+    audioQueueRef.current = [];
+    audioPlayingRef.current = false;
+    translationLiveRef.current = false;
+    setCaptureInfo({ mode: "off", heard: "", error: "" });
+    shownSegmentRef.current = null;
+    segmentStartRef.current = 0;
     if (translationAudioRef.current) {
       translationAudioRef.current.pause();
       translationAudioRef.current.removeAttribute("src");
@@ -592,12 +831,11 @@ export default function CallManager() {
         }
         if (remoteVideoRef.current) {
           remoteVideoRef.current.srcObject = remoteStreamRef.current;
-          remoteVideoRef.current.muted = translationEnabledRef.current;
         }
         if (remoteAudioRef.current) {
           remoteAudioRef.current.srcObject = remoteStreamRef.current;
-          remoteAudioRef.current.muted = translationEnabledRef.current;
         }
+        applyRemoteAudioLevel();
         updateCall((current) => ({ ...current, status: "active" }));
       };
       connection.onicecandidate = ({ candidate }) => {
@@ -615,7 +853,7 @@ export default function CallManager() {
       };
       return connection;
     },
-    [showEndedState, updateCall]
+    [applyRemoteAudioLevel, showEndedState, updateCall]
   );
 
   const addQueuedCandidates = useCallback(async (connection) => {
@@ -632,26 +870,16 @@ export default function CallManager() {
     }
     if (remoteVideoRef.current) {
       remoteVideoRef.current.srcObject = remoteStreamRef.current;
-      remoteVideoRef.current.muted = translationEnabledRef.current;
     }
     if (remoteAudioRef.current) {
       remoteAudioRef.current.srcObject = remoteStreamRef.current;
-      remoteAudioRef.current.muted = translationEnabledRef.current;
     }
-  }, [call.status, call.mode]);
+    applyRemoteAudioLevel();
+  }, [call.status, call.mode, applyRemoteAudioLevel]);
 
-  // While translation is on, the listener should hear ONLY the translated
-  // audio — not the peer's raw voice underneath it. Muting the raw WebRTC
-  // playback (rather than renegotiating the connection to drop the audio
-  // track) is what actually replaces the voice instead of layering both.
   useEffect(() => {
-    if (remoteVideoRef.current) {
-      remoteVideoRef.current.muted = translationEnabled;
-    }
-    if (remoteAudioRef.current) {
-      remoteAudioRef.current.muted = translationEnabled;
-    }
-  }, [translationEnabled]);
+    applyRemoteAudioLevel();
+  }, [translationEnabled, voiceMode, applyRemoteAudioLevel]);
 
   useEffect(() => {
     if (call.status !== "active") return undefined;
@@ -877,19 +1105,46 @@ export default function CallManager() {
       sourceLang,
       targetLang,
       speakerId,
+      segmentId,
+      final = true,
       audio,
     }) => {
       if (callRef.current.callId !== callId) return;
+      const incoming = { speakerId, segmentId: segmentId ?? Date.now(), final };
+      // A slow partial can land after the phrase it belongs to has finished.
+      if (!shouldApplySegment(shownSegmentRef.current, incoming)) return;
+      shownSegmentRef.current = incoming;
+      if (final && !translationLiveRef.current) {
+        translationLiveRef.current = true;
+        applyRemoteAudioLevel();
+      }
+
       setTranslation({
         originalText,
         translatedText,
         sourceLang,
         targetLang,
         speakerId,
+        final,
       });
+      // Only a finished phrase is spoken, and how depends on the listener's
+      // choice: natural voice arrives separately, browser voice is immediate.
+      if (!final || voiceModeRef.current === "captions") return;
       if (audio?.url) {
         playTranslationAudio(audio.url);
-      } else {
+      } else if (voiceModeRef.current === "browser") {
+        speakTranslation(translatedText, targetLang);
+      }
+    };
+    // The server's natural voice follows the caption as its own event. If it
+    // could not be generated it arrives without audio, and this browser's
+    // voice reads the text instead.
+    const handleTranslationAudio = ({ callId, translatedText, targetLang, audio }) => {
+      if (callRef.current.callId !== callId) return;
+      if (voiceModeRef.current !== "natural") return;
+      if (audio?.url) {
+        playTranslationAudio(audio.url);
+      } else if (translatedText) {
         speakTranslation(translatedText, targetLang);
       }
     };
@@ -931,6 +1186,7 @@ export default function CallManager() {
     socket.on("call:summary-approved", handleSummaryApproved);
     socket.on("call:summary-declined", handleSummaryDeclined);
     socket.on("call:translation-result", handleTranslationResult);
+    socket.on("call:translation-audio", handleTranslationAudio);
     socket.on("call:peer-language", handlePeerLanguage);
     socket.on("call:translation-toggle", handlePeerTranslationToggle);
     socket.on("call:translation-blocked", handleTranslationBlocked);
@@ -954,6 +1210,7 @@ export default function CallManager() {
       socket.off("call:summary-approved", handleSummaryApproved);
       socket.off("call:summary-declined", handleSummaryDeclined);
       socket.off("call:translation-result", handleTranslationResult);
+      socket.off("call:translation-audio", handleTranslationAudio);
       socket.off("call:peer-language", handlePeerLanguage);
       socket.off("call:translation-toggle", handlePeerTranslationToggle);
       socket.off("call:translation-blocked", handleTranslationBlocked);
@@ -961,6 +1218,7 @@ export default function CallManager() {
   }, [
     acquireMedia,
     addQueuedCandidates,
+    applyRemoteAudioLevel,
     createPeerConnection,
     loadIceServers,
     playTranslationAudio,
@@ -1379,13 +1637,46 @@ export default function CallManager() {
             )}
 
             {translation && (
-              <div className={styles.translationBar}>
+              <div
+                className={`${styles.translationBar} ${
+                  translation.final === false ? styles.translationInterim : ""
+                }`}
+              >
                 <span className={styles.translationLabel}>
                   {displayForDetectedLanguage(translation.sourceLang).flag}
                   {" → "}
                   {LANGUAGES[translation.targetLang]?.flag || "🌐"}
                 </span>
                 <p>{translation.translatedText}</p>
+              </div>
+            )}
+
+            {translationEnabled && (
+              <div className={styles.captureStatus} role="status">
+                {captureInfo.mode === "browser" && "Mic: browser speech recognition"}
+                {captureInfo.mode === "server" && "Mic: server transcription"}
+                {captureInfo.error && ` · problem: ${captureInfo.error}`}
+                {captureInfo.heard && ` · heard: “${captureInfo.heard}”`}
+              </div>
+            )}
+
+            {translationEnabled && (
+              <div className={styles.voiceModeRow} role="group" aria-label="How to hear translations">
+                {[
+                  ["captions", "Captions"],
+                  ["browser", "Voice"],
+                  ["natural", "Natural voice"],
+                ].map(([mode, label]) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    className={voiceMode === mode ? styles.voiceModeActive : styles.voiceModeButton}
+                    aria-pressed={voiceMode === mode}
+                    onClick={() => setVoiceMode(mode)}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
             )}
 

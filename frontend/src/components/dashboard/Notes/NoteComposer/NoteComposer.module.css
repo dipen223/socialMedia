@@ -4,8 +4,8 @@
   gap: 12px;
   padding: 20px;
   background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
 }
 
 .textarea {
@@ -13,16 +13,16 @@
   resize: vertical;
   min-height: 72px;
   padding: 12px 14px;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   font-size: 15px;
   font-family: inherit;
-  color: #0f172a;
+  color: var(--text);
 }
 
 .textarea:disabled {
-  background: #f8fafc;
-  color: #94a3b8;
+  background: var(--surface-muted);
+  color: var(--text-subtle);
 }
 
 .actions {
@@ -37,12 +37,12 @@
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  border-radius: 999px;
-  border: 1px solid #10b981;
-  background: #ecfdf5;
-  color: #059669;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--brand-600);
+  background: var(--brand-100);
+  color: var(--brand-700);
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--text-sm);
   cursor: pointer;
 }
 
@@ -60,17 +60,18 @@
 
 .saveButton {
   padding: 8px 20px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: none;
-  background: #10b981;
+  background: var(--brand-600);
   color: #fff;
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--text-sm);
   cursor: pointer;
 }
 
 .saveButton:disabled {
-  background: #a7f3d0;
+  background: var(--brand-200);
+  color: var(--brand-700);
   cursor: default;
 }
 

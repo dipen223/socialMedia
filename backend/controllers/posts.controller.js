@@ -88,9 +88,16 @@ const createPost = async (req, res) => {
                 && asset.context?.custom?.owner === userId.toString();
         }
 
+        const body = typeof req.body.body === "string" ? req.body.body.trim() : "";
+
+        // Text or media - either alone is a valid post, neither is not.
+        if (!body && !mediaUrl) {
+            return res.status(400).json({ message: "Add something to post - text, a photo or a video." });
+        }
+
         const post = await Post.create({
             userId,
-            body: req.body.body,
+            body,
             media: mediaUrl,
             fileType,
             mediaPublicId,
@@ -109,6 +116,7 @@ const createPost = async (req, res) => {
         return res.status(500).json({ message: "Server error!" });
     }
 
+
 };
 
 const getAllPosts = async (req, res) => {
@@ -119,6 +127,10 @@ const getAllPosts = async (req, res) => {
             .populate("userId", "name username email profilePicture")
             .populate("faceReactions.userId", "name username")
             .populate("faceReactions.reactionId", "name imageUrl ownerId active")
+            .populate({
+                path: "repostOf",
+                populate: { path: "userId", select: "name username profilePicture" },
+            })
             .lean();
 
         const postIds = posts.map((post) => post._id);
@@ -168,6 +180,10 @@ const getFeed = async (req, res) => {
             .populate("userId", "name username email profilePicture")
             .populate("faceReactions.userId", "name username")
             .populate("faceReactions.reactionId", "name imageUrl ownerId active")
+            .populate({
+                path: "repostOf",
+                populate: { path: "userId", select: "name username profilePicture" },
+            })
             .lean();
 
         const postIds = posts.map((post) => post._id);
@@ -251,11 +267,17 @@ const deletePost = async (req, res) => {
             });
         }
 
-        await post.deleteOne();
+        // Reposts are their own Posts pointing at this one - without the
+        // original they would render as blank cards, so they go with it.
+        const repostIds = (await Post.find({ repostOf: post._id }).select("_id").lean())
+            .map((repost) => repost._id);
+        const postIds = [post._id, ...repostIds];
+
+        await Post.deleteMany({ _id: { $in: postIds } });
         await Promise.all([
-            Comment.deleteMany({ postId }),
-            Notification.deleteMany({ postId }),
-            DiscussionRoom.deleteMany({ postId })
+            Comment.deleteMany({ postId: { $in: postIds } }),
+            Notification.deleteMany({ postId: { $in: postIds } }),
+            DiscussionRoom.deleteMany({ postId: { $in: postIds } })
         ]);
         if (post.mediaPublicId) {
             cloudinary.uploader.destroy(post.mediaPublicId, {
@@ -270,6 +292,52 @@ const deletePost = async (req, res) => {
     }
 };
 
+// Sharing a post to your own profile. The repost is a new Post you own that
+// points at the original, so it appears on your profile and in feeds like any
+// other post - while likes and comments stay on the original rather than
+// being scattered across every copy.
+const repostPost = async (req, res) => {
+    const { postId } = req.params;
+    const userId = req.user.id;
+
+    if (!mongoose.isValidObjectId(postId)) {
+        return res.status(400).json({ message: "Invalid post." });
+    }
+
+    try {
+        const original = await Post.findOne({ _id: postId, active: true });
+        if (!original) {
+            return res.status(404).json({ message: "Post not found." });
+        }
+
+        // Reposting a repost should credit the original author, not the
+        // person who shared it - otherwise chains of reposts point at each
+        // other instead of at the actual content.
+        const targetId = original.repostOf || original._id;
+
+        const existing = await Post.findOne({ userId, repostOf: targetId, active: true });
+        if (existing) {
+            return res.status(409).json({ message: "You already shared this post." });
+        }
+
+        const repost = await Post.create({
+            userId,
+            body: typeof req.body.body === "string" ? req.body.body.trim() : "",
+            repostOf: targetId,
+        });
+
+        return res.status(201).json({ message: "Shared to your profile.", post: repost });
+    } catch (err) {
+        // The unique { userId, repostOf } index catches a double-submit that
+        // slipped past the findOne check above.
+        if (err.code === 11000) {
+            return res.status(409).json({ message: "You already shared this post." });
+        }
+        console.error("Error reposting!", err.message);
+        return res.status(500).json({ message: "Server error!" });
+    }
+};
+
 const updatePost = async (req, res) => {
     const { postId } = req.params;
     const userId = req.user.id;
@@ -277,9 +345,6 @@ const updatePost = async (req, res) => {
 
     if (!mongoose.isValidObjectId(postId)) {
         return res.status(400).json({ message: "Invalid post." });
-    }
-    if (!body) {
-        return res.status(400).json({ message: "Post text cannot be empty." });
     }
     if (body.length > 2000) {
         return res.status(400).json({ message: "Posts cannot exceed 2,000 characters." });
@@ -292,6 +357,11 @@ const updatePost = async (req, res) => {
         }
         if (post.userId.toString() !== userId.toString()) {
             return res.status(403).json({ message: "You cannot edit this post." });
+        }
+        // Clearing the caption is fine as long as the post still has media -
+        // same "text or media" rule createPost uses.
+        if (!body && !post.media) {
+            return res.status(400).json({ message: "A post without media needs some text." });
         }
 
         post.body = body;
@@ -532,6 +602,10 @@ const getPostsByHashtag = async (req, res) => {
         })
             .sort({ createdAt: -1 })
             .populate("userId", "name username email profilePicture")
+            .populate({
+                path: "repostOf",
+                populate: { path: "userId", select: "name username profilePicture" },
+            })
             .lean();
 
         const postIds = posts.map((post) => post._id);
@@ -616,6 +690,10 @@ const getSavedPosts = async (req, res) => {
         })
             .sort({ createdAt: -1 })
             .populate("userId", "name username email profilePicture")
+            .populate({
+                path: "repostOf",
+                populate: { path: "userId", select: "name username profilePicture" },
+            })
             .lean();
 
         const postIds = posts.map((post) => post._id);
@@ -703,4 +781,4 @@ const getPostReactions = async (req, res) => {
 
 };
 
-export default { createPost, getAllPosts, getFeed, getUploadSignature, deletePost, updatePost, likePost, reactWithFace, removeFaceReaction, getTrendingHashtags, getPostsByHashtag, bookmarkPost, getSavedPosts,getPostReactions };
+export default { createPost, repostPost, getAllPosts, getFeed, getUploadSignature, deletePost, updatePost, likePost, reactWithFace, removeFaceReaction, getTrendingHashtags, getPostsByHashtag, bookmarkPost, getSavedPosts,getPostReactions };

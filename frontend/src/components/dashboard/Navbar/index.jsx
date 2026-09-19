@@ -347,6 +347,11 @@ export default function Navbar() {
       return;
     }
 
+    if (notification.type === "note_reminder") {
+      router.push("/dashboard/notes");
+      return;
+    }
+
     const username = notification.actorId?.username;
     router.push(username ? `/${username}` : "/dashboard/connections");
   };
@@ -531,6 +536,8 @@ export default function Navbar() {
         <div className={styles.actions}>
           <Link
             href="/dashboard"
+            aria-label="Home"
+            aria-current={router.pathname === "/dashboard" ? "page" : undefined}
             className={`${styles.navLink} ${router.pathname === "/dashboard" ? styles.active : ""}`}
           >
             <HomeIcon />
@@ -539,6 +546,8 @@ export default function Navbar() {
 
           <Link
             href="/dashboard/explore"
+            aria-label="Explore"
+            aria-current={router.pathname === "/dashboard/explore" ? "page" : undefined}
             className={`${styles.navLink} ${router.pathname === "/dashboard/explore" ? styles.active : ""}`}
           >
             <CompassIcon />
@@ -547,6 +556,8 @@ export default function Navbar() {
 
           <Link
             href="/dashboard/connections"
+            aria-label="Network"
+            aria-current={router.pathname === "/dashboard/connections" ? "page" : undefined}
             className={`${styles.navLink} ${router.pathname === "/dashboard/connections" ? styles.active : ""}`}
           >
             <NetworkIcon />
@@ -555,6 +566,8 @@ export default function Navbar() {
 
           <Link
             href="/dashboard/saved"
+            aria-label="Saved"
+            aria-current={router.pathname === "/dashboard/saved" ? "page" : undefined}
             className={`${styles.navLink} ${router.pathname === "/dashboard/saved" ? styles.active : ""}`}
           >
             <BookmarkNavIcon />
@@ -647,6 +660,7 @@ export default function Navbar() {
                       post_commented: "commented on your post.",
                       new_message: "sent you a message.",
                       missed_call: "tried to call you.",
+                      note_reminder: "a note reminder is due.",
                     }[notification.type] || "interacted with you.";
                     const isAccepting =
                       acceptingRequestId === notification.connectionId;

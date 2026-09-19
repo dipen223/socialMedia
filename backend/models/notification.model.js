@@ -22,6 +22,7 @@ const notificationSchema = new Schema({
             "post_commented",
             "new_message",
             "missed_call",
+            "note_reminder",
         ],
         required: true,
     },
@@ -53,6 +54,11 @@ const notificationSchema = new Schema({
     messageId: {
         type: Schema.Types.ObjectId,
         ref: "Message",
+        default: null,
+    },
+    noteId: {
+        type: Schema.Types.ObjectId,
+        ref: "Note",
         default: null,
     },
     readAt: {
