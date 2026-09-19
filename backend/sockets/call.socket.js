@@ -12,10 +12,11 @@ import { PLAN_LIMITS_SECONDS, reportOverageUsage } from "../services/stripe.serv
 
 const calls = new Map();
 const RING_TIMEOUT_MS = 45000;
-// Dev/testing escape hatch - set ENFORCE_TRANSLATION_BILLING=false in .env to
-// let every account translate freely, so test accounts don't each need a real
-// Stripe checkout just to test call quality. Defaults to enforced/on.
-const BILLING_ENFORCED = process.env.ENFORCE_TRANSLATION_BILLING !== "false";
+// Subscription paywall for live translation is PAUSED by default: every
+// account can translate and nothing is reported to Stripe. Set
+// ENFORCE_TRANSLATION_BILLING=true to turn the plan gate and overage billing
+// back on.
+const BILLING_ENFORCED = process.env.ENFORCE_TRANSLATION_BILLING === "true";
 // A chunk's self-reported duration is trusted for usage metering but clamped
 // so a malicious client can't inflate/deflate it beyond one VAD chunk's worth.
 const MAX_CHUNK_DURATION_MS = 15000;
@@ -303,7 +304,7 @@ const admitTranslation = async ({ socket, call, speakerId, durationMs, interim =
         Math.max(0, speakerBilling.secondsUsed - speakerBilling.limitSeconds) / 60
     );
     const newOverageMinutes = overageMinutesTotal - speakerBilling.overageMinutesReported;
-    if (newOverageMinutes > 0 && speakerBilling.stripeCustomerId) {
+    if (BILLING_ENFORCED && newOverageMinutes > 0 && speakerBilling.stripeCustomerId) {
         speakerBilling.overageMinutesReported = overageMinutesTotal;
         reportOverageUsage({
             customerId: speakerBilling.stripeCustomerId,
