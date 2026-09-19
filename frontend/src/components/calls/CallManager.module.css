@@ -444,6 +444,49 @@
   letter-spacing: 0.02em;
 }
 
+.translationInterim p {
+  opacity: 0.6;
+}
+
+.captureStatus {
+  z-index: 2;
+  padding: 6px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(18, 32, 24, 0.96);
+  color: #8fb8a3;
+  font-size: 10px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.voiceModeRow {
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(18, 32, 24, 0.96);
+}
+
+.voiceModeButton,
+.voiceModeActive {
+  padding: 5px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: transparent;
+  color: #8fb8a3;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.voiceModeActive {
+  border-color: #2b9568;
+  background: #2b9568;
+  color: #fff;
+}
+
 .translationBar p {
   margin: 0;
   color: #f2f7f4;
