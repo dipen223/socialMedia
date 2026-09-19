@@ -49,6 +49,8 @@ export default function DiscussionRoomPage() {
   const [remoteAudio, setRemoteAudio] = useState([]);
   const [sidePanel, setSidePanel] = useState("chat");
   const [messages, setMessages] = useState([]);
+  // Messages the viewer has switched back to the original wording for.
+  const [originalShownIds, setOriginalShownIds] = useState(() => new Set());
   const [chatDraft, setChatDraft] = useState("");
   const [sendingChat, setSendingChat] = useState(false);
   const [showEmojis, setShowEmojis] = useState(false);
@@ -229,6 +231,14 @@ export default function DiscussionRoomPage() {
         )
       );
     };
+    // Translations arrive a moment after the message itself.
+    const handleChatTranslated = ({ messageId, translations }) => {
+      setMessages((current) =>
+        current.map((message) =>
+          message._id === messageId ? { ...message, translations } : message
+        )
+      );
+    };
     const handleChatDeleted = ({ messageId, deletedAt }) => {
       setMessages((current) =>
         current.map((message) =>
@@ -267,6 +277,7 @@ export default function DiscussionRoomPage() {
         socket?.on("discussion:media-closed", handleMediaClosed);
         socket?.on("discussion:message:new", handleChatMessage);
         socket?.on("discussion:message:updated", handleChatUpdated);
+        socket?.on("discussion:message:translated", handleChatTranslated);
         socket?.on("discussion:message:deleted", handleChatDeleted);
         socket?.emit("discussion:join", { roomId }, (result) => {
           if (!result?.ok) setError(result?.message || "Could not join the room.");
@@ -298,6 +309,7 @@ export default function DiscussionRoomPage() {
       socket?.off("discussion:media-closed", handleMediaClosed);
       socket?.off("discussion:message:new", handleChatMessage);
       socket?.off("discussion:message:updated", handleChatUpdated);
+      socket?.off("discussion:message:translated", handleChatTranslated);
       socket?.off("discussion:message:deleted", handleChatDeleted);
       const sessions = [
         publishSessionRef.current,
@@ -574,6 +586,15 @@ export default function DiscussionRoomPage() {
                     const sender = message.senderId || {};
                     const senderId = (sender._id || sender).toString();
                     const canDelete = isHost || senderId === currentUserId;
+                    // Show the message in the viewer's own language when it has
+                    // been translated - never for their own messages or removed ones.
+                    const translation =
+                      senderId !== currentUserId && !message.deletedAt
+                        ? message.translations?.find(
+                            (entry) => entry.lang === currentUser?.preferredLanguage
+                          )
+                        : null;
+                    const showingOriginal = originalShownIds.has(message._id);
                     return (
                       <article className={`${styles.chatMessage} ${senderId === currentUserId ? styles.ownChatMessage : ""}`} key={message._id}>
                         <span className={styles.chatAvatar}>
@@ -589,7 +610,25 @@ export default function DiscussionRoomPage() {
                               <button type="button" aria-label="Remove message" onClick={() => deleteChatMessage(message._id)}>•••</button>
                             )}
                           </header>
-                          <p className={message.deletedAt ? styles.deletedMessage : ""}>{message.body}</p>
+                          <p className={message.deletedAt ? styles.deletedMessage : ""}>
+                            {translation && !showingOriginal ? translation.text : message.body}
+                          </p>
+                          {translation && (
+                            <button
+                              type="button"
+                              className={styles.translationToggle}
+                              onClick={() =>
+                                setOriginalShownIds((current) => {
+                                  const next = new Set(current);
+                                  if (next.has(message._id)) next.delete(message._id);
+                                  else next.add(message._id);
+                                  return next;
+                                })
+                              }
+                            >
+                              {showingOriginal ? "See translation" : "Translated · See original"}
+                            </button>
+                          )}
                           {!message.deletedAt && (
                             <div className={styles.messageReactions}>
                               {(message.reactions || []).map((reaction) => {

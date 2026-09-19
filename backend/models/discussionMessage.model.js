@@ -38,6 +38,16 @@ const discussionMessageSchema = new Schema(
             type: [reactionSchema],
             default: [],
         },
+        // The message in the other languages people in the room speak, filled in
+        // shortly after it is sent (see services/discussionTranslation.service.js).
+        translations: {
+            type: [{
+                lang: { type: String, required: true },
+                text: { type: String, required: true },
+                _id: false,
+            }],
+            default: [],
+        },
         deletedAt: {
             type: Date,
             default: null,
