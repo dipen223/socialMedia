@@ -2,6 +2,12 @@
 // database and a stubbed OpenAI - no network, no DB. Run with:
 //   node backend/scripts/test-live-translation-server.mjs
 process.env.OPENAI_API_KEY = "test-key";
+// Importing the real handlers pulls in config that insists these exist. Dummy
+// values are enough here (nothing calls Cloudinary), and they let this run in
+// CI where there is no .env file.
+process.env.CLOUDINARY_CLOUD_NAME ||= "test";
+process.env.CLOUDINARY_API_KEY ||= "test";
+process.env.CLOUDINARY_API_SECRET ||= "test";
 process.env.ENFORCE_TRANSLATION_BILLING = "true";
 
 const { default: User } = await import("../models/user.model.js");
