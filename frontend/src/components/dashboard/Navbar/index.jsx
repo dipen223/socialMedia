@@ -531,6 +531,8 @@ export default function Navbar() {
         <div className={styles.actions}>
           <Link
             href="/dashboard"
+            aria-label="Home"
+            aria-current={router.pathname === "/dashboard" ? "page" : undefined}
             className={`${styles.navLink} ${router.pathname === "/dashboard" ? styles.active : ""}`}
           >
             <HomeIcon />
@@ -539,6 +541,8 @@ export default function Navbar() {
 
           <Link
             href="/dashboard/explore"
+            aria-label="Explore"
+            aria-current={router.pathname === "/dashboard/explore" ? "page" : undefined}
             className={`${styles.navLink} ${router.pathname === "/dashboard/explore" ? styles.active : ""}`}
           >
             <CompassIcon />
@@ -547,6 +551,8 @@ export default function Navbar() {
 
           <Link
             href="/dashboard/connections"
+            aria-label="Network"
+            aria-current={router.pathname === "/dashboard/connections" ? "page" : undefined}
             className={`${styles.navLink} ${router.pathname === "/dashboard/connections" ? styles.active : ""}`}
           >
             <NetworkIcon />
@@ -555,6 +561,8 @@ export default function Navbar() {
 
           <Link
             href="/dashboard/saved"
+            aria-label="Saved"
+            aria-current={router.pathname === "/dashboard/saved" ? "page" : undefined}
             className={`${styles.navLink} ${router.pathname === "/dashboard/saved" ? styles.active : ""}`}
           >
             <BookmarkNavIcon />

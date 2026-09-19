@@ -10,32 +10,32 @@
   gap: 4px;
   padding: 4px;
   background: #fff;
-  border: 1px solid #dfe8e2;
-  border-radius: 999px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
 }
 
 .toggleBtn {
   padding: 9px 18px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 0;
   background: transparent;
-  color: #64748b;
+  color: var(--text-muted);
   font: 13px/1 inherit;
   font-weight: 800;
   cursor: pointer;
 }
 
 .toggleBtnActive {
-  background: #10b981;
+  background: var(--brand-600);
   color: #fff;
 }
 
 .saveBadge {
   margin-left: 6px;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgba(16, 185, 129, 0.15);
-  color: #059669;
+  color: var(--brand-700);
   font-size: 10px;
   font-weight: 800;
 }
@@ -52,14 +52,14 @@
   gap: 20px;
   padding: 28px 24px;
   background: #fff;
-  border: 1px solid #dfe8e2;
-  border-radius: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   box-shadow: 0 10px 30px rgba(23, 37, 30, 0.05);
 }
 
 .cardHighlight {
   position: relative;
-  border: 2px solid #10b981;
+  border: 2px solid var(--brand-600);
   box-shadow: 0 20px 45px rgba(16, 185, 129, 0.16);
 }
 
@@ -69,25 +69,25 @@
   left: 50%;
   transform: translateX(-50%);
   padding: 5px 14px;
-  background: #10b981;
+  background: var(--brand-600);
   color: #fff;
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 800;
   letter-spacing: 0.03em;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   white-space: nowrap;
 }
 
 .cardTitle {
   margin: 0 0 6px;
-  color: #0f172a;
+  color: var(--text);
   font-size: 18px;
   font-weight: 800;
 }
 
 .cardSubtitle {
   margin: 0;
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 13px;
   line-height: 1.5;
 }
@@ -106,26 +106,26 @@
 }
 
 .price {
-  color: #0f172a;
+  color: var(--text);
   font-size: 34px;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
 
 .cadence {
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 13px;
   font-weight: 600;
 }
 
 .annualNote {
-  color: #64748b;
-  font-size: 12px;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
 }
 
 .cta {
   padding: 12px 18px;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   font: 14px/1 inherit;
   font-weight: 800;
   cursor: pointer;
@@ -133,22 +133,22 @@
 }
 
 .ctaPrimary {
-  background: #10b981;
+  background: var(--brand-600);
   color: #fff;
   border: 0;
   box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35);
 }
 
 .ctaDark {
-  background: #0f172a;
+  background: var(--text);
   color: #fff;
   border: 0;
 }
 
 .ctaCurrent {
   background: #f1f5f4;
-  color: #64748b;
-  border: 1px solid #dfe8e2;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
   cursor: default;
   opacity: 0.85;
 }
@@ -177,12 +177,12 @@
   gap: 10px;
   align-items: flex-start;
   font-size: 13px;
-  color: #0f172a;
+  color: var(--text);
   line-height: 1.4;
 }
 
 .featureMuted {
-  color: #64748b;
+  color: var(--text-muted);
 }
 
 .checkIcon {
@@ -193,24 +193,24 @@
 .footnote {
   text-align: center;
   margin: 24px 0 0;
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 13px;
 }
 
 .usageBar {
   margin: 8px 0 24px;
   padding: 14px 18px;
-  border-radius: 14px;
-  background: #f8faf9;
-  border: 1px solid #dfe8e2;
-  color: #0f172a;
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  color: var(--text);
   font-size: 13px;
   font-weight: 650;
 }
 
 .errorNotice {
   padding: 12px 18px;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   background: rgba(239, 68, 68, 0.15);
   border: 1px solid rgba(239, 68, 68, 0.3);
   color: #ef4444;
@@ -221,10 +221,10 @@
 
 .noticeSuccess {
   padding: 12px 18px;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   background: rgba(16, 185, 129, 0.12);
   border: 1px solid rgba(16, 185, 129, 0.3);
-  color: #059669;
+  color: var(--brand-700);
   font-size: 13px;
   font-weight: 700;
   margin-bottom: 16px;

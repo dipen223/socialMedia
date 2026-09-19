@@ -35,7 +35,7 @@
 
 .heroHeader p {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--text-sm);
   color: #9ab0a4;
   max-width: 520px;
 }
@@ -56,9 +56,9 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 16px;
+  font-size: var(--text-base);
   font-weight: 800;
-  color: #0f172a;
+  color: var(--text);
 }
 
 .hashtagGrid {
@@ -72,10 +72,10 @@
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  border-radius: 999px;
-  background: #f8faf9;
+  border-radius: var(--radius-pill);
+  background: var(--surface-muted);
   border: 1px solid #cbd5e1;
-  color: #0f172a;
+  color: var(--text);
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
@@ -84,23 +84,23 @@
 
 .tagPill:hover {
   background: rgba(52, 211, 153, 0.15);
-  border-color: #10b981;
-  color: #059669;
+  border-color: var(--brand-600);
+  color: var(--brand-700);
   transform: translateY(-2px);
 }
 
 .tagPillActive {
-  background: #10b981 !important;
-  border-color: #10b981 !important;
+  background: var(--brand-600) !important;
+  border-color: var(--brand-600) !important;
   color: #ffffff !important;
   box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
 }
 
 .tagCount {
   padding: 2px 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgba(0, 0, 0, 0.08);
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 800;
 }
 
@@ -113,29 +113,29 @@
 .tabsBar {
   display: flex;
   gap: 10px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border);
   padding-bottom: 8px;
 }
 
 .tabBtn {
   padding: 10px 20px;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: transparent;
-  color: #64748b;
-  font-size: 14px;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .tabBtn:hover {
-  color: #0f172a;
+  color: var(--text);
   background: #f1f5f9;
 }
 
 .tabBtnActive {
-  background: #10b981 !important;
+  background: var(--brand-600) !important;
   color: #ffffff !important;
   box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
 }
@@ -150,18 +150,18 @@
 .statusNotice {
   padding: 40px;
   text-align: center;
-  color: #64748b;
-  font-size: 14px;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
 }
 
 .clearFilterBtn {
   margin-left: auto;
   padding: 4px 10px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: #fee2e2;
   color: #ef4444;
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 700;
   cursor: pointer;
 }

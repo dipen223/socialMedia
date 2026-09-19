@@ -4,10 +4,10 @@
   width: 260px;
   margin: 24px;
   padding: 14px;
-  border: 1px solid #dfe8e2;
-  border-radius: 16px;
-  background: #fbfaf6;
-  box-shadow: 0 10px 30px rgba(23, 37, 30, 0.06);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .sidebarNav {
@@ -20,7 +20,7 @@
   margin: 2px 10px 10px;
   color: #7a887f;
   content: "Menu";
-  font-size:11px;
+  font-size:var(--text-xs);
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -34,9 +34,9 @@
   align-items: center;
   padding: 0 12px;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: transparent;
-  color: #526159;
+  color: var(--text-muted);
   cursor: pointer;
   font: 650 17px inherit;
   text-align: left;
@@ -45,8 +45,8 @@
 }
 
 .sidebarNav a:hover {
-  background: #e9f3ed;
-  color: #1f6b4f;
+  background: var(--brand-100);
+  color: var(--brand-600);
   transform: translateX(2px);
 }
 
@@ -56,8 +56,8 @@
 }
 
 .sidebarNav a.active {
-  background: #e9f3ed;
-  color: #1f6b4f;
+  background: var(--brand-100);
+  color: var(--brand-600);
 }
 
 .sidebarNav a.active::before {
@@ -67,7 +67,7 @@
   left: 0;
   width: 3px;
   border-radius: 0 999px 999px 0;
-  background: #1f6b4f;
+  background: var(--brand-600);
   content: "";
 }
 

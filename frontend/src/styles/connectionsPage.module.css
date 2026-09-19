@@ -16,7 +16,7 @@
 
 .heroCopy h1 {
   margin: 0;
-  color: #17251e;
+  color: var(--text);
   font-size: 30px;
   letter-spacing: -.03em;
 }
@@ -24,7 +24,7 @@
 .heroCopy > span {
   display: block;
   margin-top: 6px;
-  color: #718078;
+  color: var(--text-subtle);
   font-size: 13px;
 }
 
@@ -37,19 +37,19 @@
   display: flex;
   align-items: baseline;
   gap: 6px;
-  color: #718078;
-  font-size: 12px;
+  color: var(--text-subtle);
+  font-size: var(--text-xs);
 }
 
 .statCard strong {
-  color: #17251e;
+  color: var(--text);
   font-size: 18px;
 }
 
 .section {
   overflow: hidden;
-  border: 1px solid #dfe8e2;
-  border-radius: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   background: #fff;
 }
 
@@ -65,14 +65,14 @@
 
 .sectionTitle h2 {
   margin: 0;
-  color: #17251e;
+  color: var(--text);
   font-size: 15px;
 }
 
 .sectionTitle p {
   margin: 3px 0 0;
-  color: #89958e;
-  font-size: 11px;
+  color: var(--text-subtle);
+  font-size: var(--text-xs);
 }
 
 .countBadge {
@@ -81,10 +81,10 @@
   height: 24px;
   padding: 0 7px;
   place-items: center;
-  border-radius: 999px;
-  background: #edf5ef;
-  color: #1f6b4f;
-  font-size: 11px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-100);
+  color: var(--brand-600);
+  font-size: var(--text-xs);
   font-weight: 800;
 }
 
@@ -92,10 +92,10 @@
 .ctaBtn {
   padding: 8px 12px;
   border: 1px solid #cbdad1;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: #fff;
-  color: #1f6b4f;
-  font-size: 12px;
+  color: var(--brand-600);
+  font-size: var(--text-xs);
   font-weight: 700;
   text-decoration: none;
 }
@@ -154,9 +154,9 @@
   flex: 0 0 46px;
   place-items: center;
   border-radius: 50%;
-  background: #e9f3ed;
-  color: #1f6b4f;
-  font-size: 12px;
+  background: var(--brand-100);
+  color: var(--brand-600);
+  font-size: var(--text-xs);
   font-weight: 800;
 }
 
@@ -180,13 +180,13 @@
 }
 
 .identity strong {
-  color: #17251e;
+  color: var(--text);
   font-size: 13px;
 }
 
 .identity small {
-  color: #89958e;
-  font-size: 11px;
+  color: var(--text-subtle);
+  font-size: var(--text-xs);
 }
 
 .requestActions {
@@ -197,22 +197,22 @@
 .requestActions button {
   min-height: 34px;
   padding: 0 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 750;
 }
 
 .confirmButton {
-  border: 1px solid #1f6b4f;
-  background: #1f6b4f;
+  border: 1px solid var(--brand-600);
+  background: var(--brand-600);
   color: #fff;
 }
 
 .deleteButton {
   border: 1px solid #d8e2db;
   background: #fff;
-  color: #607068;
+  color: var(--text-muted);
 }
 
 .requestActions button:hover:not(:disabled) {
@@ -234,27 +234,27 @@
 
 .viewProfile {
   margin-left: auto;
-  color: #607068;
-  font-size: 11px;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
   font-weight: 700;
 }
 
 .status,
 .empty {
   padding: 38px 20px;
-  color: #718078;
+  color: var(--text-subtle);
   text-align: center;
 }
 
 .empty h3 {
   margin: 0;
   color: #35443c;
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
 
 .empty p {
   margin: 6px 0 0;
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 
 .empty .ctaBtn {
@@ -269,13 +269,13 @@
   gap: 16px;
   padding: 12px 14px;
   border: 1px solid #f1c7c3;
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: #fff7f6;
-  color: #a13a32;
+  color: var(--danger);
   text-align: left;
 }
 
-.error p { margin: 0; font-size: 12px; }
+.error p { margin: 0; font-size: var(--text-xs); }
 .error button { padding: 7px 10px; border: 1px solid #d9aaa5; border-radius: 7px; background: #fff; color: inherit; cursor: pointer; }
 
 @media (max-width: 650px) {
