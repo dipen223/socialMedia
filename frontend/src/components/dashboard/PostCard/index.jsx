@@ -471,6 +471,29 @@ export default function PostCard({ post, detail = false }) {
         </div>
       )}
 
+      {/* A repost carries no media of its own - it renders the original
+          inline, credited to whoever actually made it. Likes and comments
+          stay on this repost, while the content stays attributed correctly. */}
+      {post.repostOf && (
+        <article className={styles.repost}>
+          <Link
+            className={styles.repostAuthor}
+            href={post.repostOf.userId?.username ? `/${post.repostOf.userId.username}` : "/dashboard"}
+          >
+            <strong>{post.repostOf.userId?.name || "SocialHub member"}</strong>
+            <span>@{post.repostOf.userId?.username || "member"}</span>
+          </Link>
+          {post.repostOf.body && <p>{post.repostOf.body}</p>}
+          {post.repostOf.media && (
+            post.repostOf.fileType?.startsWith("video/") ? (
+              <video className={styles.media} src={post.repostOf.media} controls preload="metadata" />
+            ) : (
+              <img className={styles.media} src={post.repostOf.media} alt="Shared post attachment" />
+            )
+          )}
+        </article>
+      )}
+
       <footer className={styles.footer}>
         {(liveDiscussion || isOwner) && (
           <button

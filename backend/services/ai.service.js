@@ -316,6 +316,105 @@ export const synthesizeSpeech = async ({ text, language, voiceGender }) => {
     return Buffer.from(await response.arrayBuffer());
 };
 
+// Best-effort enrichment for a saved note: a short title, organizing tags,
+// and any reminders the text implies. dueAt is resolved to an absolute UTC
+// instant against the caller's timezone so relative phrases ("tomorrow at
+// 5pm") land on the right day - anything with no concrete time is skipped
+// rather than guessed at.
+export const extractNoteInsights = async ({ text, timezone }) => {
+    requireApiKey();
+    const now = new Date();
+    const response = await fetch(OPENAI_RESPONSES_URL, {
+        method: "POST",
+        headers: {
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            model:
+                process.env.OPENAI_NOTES_MODEL ||
+                process.env.OPENAI_GRAMMAR_MODEL ||
+                "gpt-5-nano",
+            instructions: [
+                `The current date/time is ${now.toISOString()} (UTC), and the note's author is in the ${timezone || "UTC"} timezone.`,
+                "Extract only information explicitly present or clearly implied in the note - never invent names, dates, or tasks.",
+                "title: a short 3-8 word title, or an empty string if none fits.",
+                "tags: 1-5 short lowercase topic tags, or an empty array.",
+                "reminders: only items the note gives a concrete or clearly inferable date/time; resolve it against the author's timezone and return dueAt as an ISO-8601 UTC timestamp. Use an empty array when nothing has a real time reference.",
+            ].join(" "),
+            input: text.slice(0, 10000),
+            reasoning: { effort: "minimal" },
+            max_output_tokens: 800,
+            // Structured output - the model is constrained to this schema, so
+            // the reply is guaranteed-parseable JSON rather than prose we'd
+            // have to strip fences off. The parse below stays as a backstop.
+            text: {
+                format: {
+                    type: "json_schema",
+                    name: "note_insights",
+                    strict: true,
+                    schema: {
+                        type: "object",
+                        additionalProperties: false,
+                        properties: {
+                            title: { type: "string" },
+                            tags: { type: "array", items: { type: "string" } },
+                            reminders: {
+                                type: "array",
+                                items: {
+                                    type: "object",
+                                    additionalProperties: false,
+                                    properties: {
+                                        text: { type: "string" },
+                                        dueAt: { type: "string" },
+                                    },
+                                    required: ["text", "dueAt"],
+                                },
+                            },
+                        },
+                        required: ["title", "tags", "reminders"],
+                    },
+                },
+            },
+        }),
+        signal: AbortSignal.timeout(30000),
+    });
+    const data = await readApiResponse(response, "The note assistant is unavailable.");
+    const output = readOutputText(data)
+        ?.replace(/^```json\s*/i, "")
+        .replace(/```$/i, "")
+        .trim();
+    const insights = JSON.parse(output);
+
+    const nowMs = now.getTime();
+    return {
+        title: typeof insights.title === "string" ? insights.title.slice(0, 200) : "",
+        tags: Array.isArray(insights.tags)
+            ? insights.tags
+                .filter((tag) => typeof tag === "string" && tag.trim())
+                .slice(0, 5)
+                .map((tag) => tag.trim().toLowerCase().slice(0, 40))
+            : [],
+        reminders: Array.isArray(insights.reminders)
+            ? insights.reminders
+                .filter((item) => {
+                    const dueAt = new Date(item?.dueAt);
+                    return (
+                        typeof item?.text === "string" &&
+                        item.text.trim() &&
+                        !Number.isNaN(dueAt.getTime()) &&
+                        dueAt.getTime() > nowMs
+                    );
+                })
+                .slice(0, 5)
+                .map((item) => ({
+                    text: item.text.trim().slice(0, 1000),
+                    dueAt: new Date(item.dueAt),
+                }))
+            : [],
+    };
+};
+
 export const summarizeCallTranscript = async (transcript) => {
     requireApiKey();
     const response = await fetch(OPENAI_RESPONSES_URL, {

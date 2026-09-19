@@ -12,6 +12,7 @@ import registerPresenceHandlers from "./sockets/presence.socket.js";
 import registerCallHandlers from "./sockets/call.socket.js";
 import registerDiscussionHandlers from "./sockets/discussion.socket.js";
 import billingController from "./controllers/billing.controller.js";
+import { startReminderPolling } from "./services/reminder.service.js";
 
 dotenv.config();
 
@@ -128,6 +129,8 @@ console.log("Authenticated socket connected:",socket.id,userRoom);
 mongoose.connect(MONGO_URI)
   .then(() => {
     console.log("✅ MongoDB connected");
+
+    startReminderPolling(io);
 
     httpServer.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);

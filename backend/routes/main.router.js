@@ -12,6 +12,8 @@ import discussionRoomRouter from "./discussionRoom.router.js";
 import storyRouter from "./story.router.js";
 import faceReactionRouter from "./faceReaction.router.js";
 import billingRouter from "./billing.router.js";
+import reelsRouter from "./reels.router.js";
+import notesRouter from "./notes.router.js";
 
 const router = express.Router();
 
@@ -27,6 +29,8 @@ router.use(messageRouter);
 router.use(callRouter);
 router.use(discussionRoomRouter);
 router.use(faceReactionRouter);
+router.use(reelsRouter);
+router.use(notesRouter);
 router.use("/api/stories", storyRouter);
 
 

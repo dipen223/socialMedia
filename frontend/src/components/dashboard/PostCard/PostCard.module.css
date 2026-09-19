@@ -120,3 +120,35 @@
 }
 .faceReactionChip > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .moreReactions { display: grid; min-width: 28px; height: 28px; place-items: center; border-radius: var(--radius-pill); background: var(--brand-100); color: var(--brand-600); font-size: 10px; font-weight: 800; }
+
+.repost {
+  margin: 12px 16px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+}
+
+.repostAuthor {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.repostAuthor strong {
+  font-size: var(--text-sm);
+}
+
+.repostAuthor span {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.repost p {
+  margin: 8px 0 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: #334155;
+}

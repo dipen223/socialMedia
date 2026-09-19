@@ -1,0 +1,230 @@
+.slide {
+  position: relative;
+  overflow: hidden;
+  height: 78vh;
+  scroll-snap-align: start;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+
+.backdrop {
+  position: absolute;
+  inset: -24px;
+  background-position: center;
+  background-size: cover;
+  filter: blur(28px) brightness(0.55) saturate(1.2);
+}
+
+.video {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  /* Tapping the video toggles playback, so it should read as clickable. */
+  cursor: pointer;
+}
+
+.playOverlay {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.6);
+  color: #fff;
+  cursor: pointer;
+}
+
+.playOverlay svg {
+  width: 30px;
+  height: 30px;
+}
+
+.muteButton {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.55);
+  color: #fff;
+  cursor: pointer;
+}
+
+.muteButton svg {
+  width: 19px;
+  height: 19px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.actions {
+  position: absolute;
+  right: 12px;
+  bottom: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.action,
+.actionActive {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.actionActive {
+  color: #f87171;
+}
+
+.action svg,
+.actionActive svg {
+  width: 27px;
+  height: 27px;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+}
+
+.shareWrap {
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.shareMenu {
+  position: absolute;
+  right: 0;
+  bottom: 38px;
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  z-index: 5;
+}
+
+.shareMenu button {
+  padding: 11px 14px;
+  border: none;
+  background: transparent;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.shareMenu button:hover {
+  background: #f1f5f9;
+}
+
+.meta {
+  position: absolute;
+  left: 0;
+  right: 70px;
+  bottom: 0;
+  padding: 16px 18px 20px;
+  color: #fff;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8), transparent);
+}
+
+.author {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: #10b981;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.names {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.names strong {
+  font-size: 15px;
+}
+
+.names small {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.caption {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* The FaceMoji picker renders its own trigger button as a direct child of
+   .action - match it to the other rail icons instead of the browser default. */
+.action > button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: transparent !important;
+  color: #fff !important;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.action > button > span:first-child {
+  font-size: 27px !important;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+}

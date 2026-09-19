@@ -347,6 +347,11 @@ export default function Navbar() {
       return;
     }
 
+    if (notification.type === "note_reminder") {
+      router.push("/dashboard/notes");
+      return;
+    }
+
     const username = notification.actorId?.username;
     router.push(username ? `/${username}` : "/dashboard/connections");
   };
@@ -655,6 +660,7 @@ export default function Navbar() {
                       post_commented: "commented on your post.",
                       new_message: "sent you a message.",
                       missed_call: "tried to call you.",
+                      note_reminder: "a note reminder is due.",
                     }[notification.type] || "interacted with you.";
                     const isAccepting =
                       acceptingRequestId === notification.connectionId;
