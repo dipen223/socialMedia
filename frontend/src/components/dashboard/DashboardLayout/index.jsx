@@ -151,7 +151,11 @@ export default function DashboardLayout({ children, wide = false,}) {
   }, [checkingAuth, dispatch]);
 
   if (checkingAuth) {
-    return <div className={styles.checking}>Checking authentication...</div>;
+    return (
+      <div className={styles.checking} role="status" aria-label="Loading">
+        <span className={styles.spinner} />
+      </div>
+    );
   }
 
   return (

@@ -5,7 +5,7 @@
   height: calc(100vh - 120px);
   min-height: 600px;
   max-height: 820px;
-  border: 1px solid #dce5df;
+  border: 1px solid var(--border);
   border-radius: 22px;
   background: #fff;
   box-shadow: 0 22px 65px rgba(23, 37, 30, 0.1);
@@ -46,7 +46,7 @@
 }
 
 .railHeader h1 {
-  color: #17251e;
+  color: var(--text);
   font-size: 24px;
   letter-spacing: -0.04em;
 }
@@ -58,9 +58,9 @@
   place-items: center;
   border: 0;
   border-radius: 13px;
-  background: #e7f2eb;
+  background: var(--brand-100);
   box-shadow: 0 6px 16px rgba(31, 107, 79, 0.1);
-  color: #1f6b4f;
+  color: var(--brand-600);
   cursor: pointer;
   font-size: 24px;
   transition: transform 150ms ease, background 150ms ease;
@@ -78,7 +78,7 @@
   margin: 0 14px 10px;
   padding: 0 12px;
   border: 1px solid #e0e8e3;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: #f1f5f2;
 }
 
@@ -104,7 +104,7 @@
   border: 0;
   outline: 0;
   background: transparent;
-  color: #17251e;
+  color: var(--text);
   font: inherit;
   font-size: 13px;
 }
@@ -130,7 +130,7 @@
   border: 0;
   border-radius: 15px;
   background: transparent;
-  color: #17251e;
+  color: var(--text);
   cursor: pointer;
   text-align: left;
   transition: background 150ms ease, transform 150ms ease;
@@ -159,9 +159,9 @@
   place-items: center;
   border: 1px solid #d5e5db;
   border-radius: 50%;
-  background: linear-gradient(145deg, #e9f3ed, #d7e9de);
-  color: #1f6b4f;
-  font-size: 14px;
+  background: linear-gradient(145deg, var(--brand-100), #d7e9de);
+  color: var(--brand-600);
+  font-size: var(--text-sm);
   font-weight: 850;
 }
 
@@ -215,13 +215,13 @@
 
 .conversationTopline time {
   flex: 0 0 auto;
-  color: #89958e;
+  color: var(--text-subtle);
   font-size: 10px;
 }
 
 .preview {
-  color: #718078;
-  font-size: 12px;
+  color: var(--text-subtle);
+  font-size: var(--text-xs);
 }
 
 .railEmpty {
@@ -229,7 +229,7 @@
   gap: 5px;
   padding: 34px 20px;
   color: #7b8981;
-  font-size: 12px;
+  font-size: var(--text-xs);
   line-height: 1.5;
   text-align: center;
 }
@@ -262,7 +262,7 @@
 .headerAvatar {
   width: 44px;
   height: 44px;
-  font-size: 12px;
+  font-size: var(--text-xs);
 }
 
 .chatIdentity {
@@ -279,8 +279,8 @@
 }
 
 .chatIdentity strong {
-  color: #17251e;
-  font-size: 14px;
+  color: var(--text);
+  font-size: var(--text-sm);
 }
 
 .chatIdentity span {
@@ -288,7 +288,7 @@
   align-items: center;
   gap: 5px;
   color: #78877f;
-  font-size: 11px;
+  font-size: var(--text-xs);
 }
 
 .inlinePresence {
@@ -302,7 +302,7 @@
   display: none;
   border: 0;
   background: transparent;
-  color: #1f6b4f;
+  color: var(--brand-600);
   cursor: pointer;
   font-size: 23px;
 }
@@ -318,15 +318,15 @@
   height: 38px;
   place-items: center;
   border: 1px solid #dce7e0;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: #f3f7f4;
-  color: #1f6b4f;
+  color: var(--brand-600);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .callActions button:hover:not(:disabled) {
-  background: #e9f3ed;
+  background: var(--brand-100);
   border-color: #bfd5c8;
   transform: translateY(-1px);
 }
@@ -362,9 +362,9 @@
   margin: 0 auto 18px;
   padding: 7px 12px;
   border: 1px solid #dce7e0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: #fff;
-  color: #607068;
+  color: var(--text-muted);
   cursor: pointer;
   font-family: inherit;
   font-size: 10px;
@@ -383,7 +383,7 @@
   gap: 7px;
   margin: 50px auto;
   color: #7a8981;
-  font-size: 12px;
+  font-size: var(--text-xs);
   text-align: center;
 }
 
@@ -448,13 +448,13 @@
   padding: 2px 5px;
   border: 0;
   background: transparent;
-  color: #718078;
+  color: var(--text-subtle);
   cursor: pointer;
   font-size: 9px;
 }
 
 .messageActions button:hover {
-  color: #1f6b4f;
+  color: var(--brand-600);
 }
 
 .messageBody p {
@@ -473,15 +473,15 @@
   padding: 0;
   border: 0;
   background: transparent;
-  color: #718078;
-  font-size: 11px;
+  color: var(--text-subtle);
+  font-size: var(--text-xs);
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 .translationToggle:hover {
-  color: #1f6b4f;
+  color: var(--brand-600);
 }
 
 .messageBody .deletedMessage {
@@ -498,7 +498,7 @@
   gap: 7px;
   padding: 9px;
   border: 1px solid #8db6a1;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   background: #fff;
   box-shadow: 0 7px 18px rgba(31, 107, 79, 0.12);
 }
@@ -508,7 +508,7 @@
   resize: vertical;
   border: 0;
   outline: 0;
-  color: #17251e;
+  color: var(--text);
   font: inherit;
   font-size: 13px;
 }
@@ -523,9 +523,9 @@
 .editBox button {
   padding: 5px 9px;
   border: 0;
-  border-radius: 8px;
-  background: #e7f2eb;
-  color: #1f6b4f;
+  border-radius: var(--radius-sm);
+  background: var(--brand-100);
+  color: var(--brand-600);
   cursor: pointer;
   font-size: 10px;
   font-weight: 750;
@@ -560,8 +560,8 @@
   border: 1px solid #d9e4dd;
   border-radius: 13px;
   background: #fff;
-  color: #1f6b4f;
-  font-size: 12px;
+  color: var(--brand-600);
+  font-size: var(--text-xs);
   text-decoration: none;
 }
 
@@ -619,7 +619,7 @@
   gap: 14px;
   padding: 16px;
   border: 1px solid #d4e4da;
-  border-radius: 14px;
+  border-radius: var(--radius-md);
   background:
     radial-gradient(circle at 100% 0, rgba(115, 180, 145, 0.2), transparent 34%),
     linear-gradient(145deg, #fbfdfb, #f2f8f4);
@@ -627,7 +627,7 @@
     0 16px 36px rgba(23, 67, 46, 0.1),
     inset 0 1px rgba(255, 255, 255, 0.85);
   color: #30463a;
-  font-size: 12px;
+  font-size: var(--text-xs);
   line-height: 1.6;
 }
 
@@ -667,8 +667,8 @@
   height: 36px;
   flex: 0 0 36px;
   place-items: center;
-  border-radius: 10px;
-  background: linear-gradient(145deg, #1f6b4f, #3e9b70);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(145deg, var(--brand-600), #3e9b70);
   box-shadow: 0 7px 16px rgba(31, 107, 79, 0.2);
   color: #fff;
   font-size: 17px;
@@ -701,8 +701,8 @@
   align-items: center;
   gap: 5px;
   padding: 5px 8px;
-  border-radius: 999px;
-  background: #e7f2eb;
+  border-radius: var(--radius-pill);
+  background: var(--brand-100);
   color: #397258;
   font-size: 8px;
   font-weight: 850;
@@ -773,7 +773,7 @@
 
 .callSummary .summaryOverview p {
   color: #294035;
-  font-size: 12px;
+  font-size: var(--text-xs);
   line-height: 1.7;
   padding:7px;
 }
@@ -781,7 +781,7 @@
 .callSummary .summarySection {
   padding: 11px 12px;
   border: 1px solid rgba(65, 111, 86, 0.12);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.72);
 }
 
@@ -873,7 +873,7 @@
 
 .mine .callMessage {
   border-color: #398064;
-  background: #1f6b4f;
+  background: var(--brand-600);
   color: #fff;
 }
 
@@ -884,7 +884,7 @@
   place-items: center;
   border-radius: 11px;
   background: #e6f1ea;
-  color: #1f6b4f;
+  color: var(--brand-600);
 }
 
 .mine .callMessageIcon {
@@ -911,7 +911,7 @@
 
 .callMessageCopy strong {
   overflow: hidden;
-  font-size: 12px;
+  font-size: var(--text-xs);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -929,9 +929,9 @@
   white-space: nowrap;
   padding: 6px 9px;
   border: 0;
-  border-radius: 9px;
-  background: #e7f2eb;
-  color: #1f6b4f;
+  border-radius: var(--radius-sm);
+  background: var(--brand-100);
+  color: var(--brand-600);
   cursor: pointer;
   font-size: 9px;
   font-weight: 800;
@@ -944,7 +944,7 @@
 
 .mine .messageBody p {
   border-radius: 16px 16px 5px;
-  background: #1f6b4f;
+  background: var(--brand-600);
   box-shadow: 0 7px 18px rgba(31, 107, 79, 0.15);
   color: #fff;
 }
@@ -986,8 +986,8 @@
   align-items: end;
   gap: 8px;
   padding: 7px;
-  border: 1px solid #dce6df;
-  border-radius: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   background: #f5f8f6;
 }
 
@@ -1004,7 +1004,7 @@
   border: 0;
   outline: 0;
   background: transparent;
-  color: #17251e;
+  color: var(--text);
   font: inherit;
   font-size: 13px;
   line-height: 1.4;
@@ -1025,13 +1025,13 @@
   min-width: 36px;
   padding: 0 5px;
   background: transparent;
-  color: #718078;
+  color: var(--text-subtle);
   cursor: pointer;
   font-size: 22px;
 }
 
 .sendButton {
-  background: #1f6b4f;
+  background: var(--brand-600);
   color: #fff;
   cursor: pointer;
 }
@@ -1058,8 +1058,8 @@
   gap: 7px;
   margin-top: 7px;
   padding: 5px 8px 5px 10px;
-  border-radius: 999px;
-  background: #e7f2eb;
+  border-radius: var(--radius-pill);
+  background: var(--brand-100);
   color: #315a47;
   font-size: 10px;
 }
@@ -1078,14 +1078,14 @@
   border: 0;
   border-radius: 50%;
   background: #cfe4d7;
-  color: #1f6b4f;
+  color: var(--brand-600);
   cursor: pointer;
 }
 
 .composerError {
   margin-bottom: 7px;
-  color: #a13a32;
-  font-size: 11px;
+  color: var(--danger);
+  font-size: var(--text-xs);
   text-align: center;
 }
 
@@ -1095,9 +1095,9 @@
   place-items: center;
   padding: 40px;
   background:
-    radial-gradient(circle at top, #e9f3ed, transparent 45%),
+    radial-gradient(circle at top, var(--brand-100), transparent 45%),
     #fff;
-  color: #718078;
+  color: var(--text-subtle);
   text-align: center;
 }
 
@@ -1115,7 +1115,7 @@
   margin-bottom: 5px;
   place-items: center;
   border-radius: 22px 22px 22px 7px;
-  background: #1f6b4f;
+  background: var(--brand-600);
   box-shadow: 0 14px 30px rgba(31, 107, 79, 0.22);
   color: #fff;
   font-size: 30px;
@@ -1123,8 +1123,8 @@
 }
 
 .emptyChat strong {
-  color: #17251e;
-  font-size: 20px;
+  color: var(--text);
+  font-size: var(--text-lg);
 }
 
 .emptyChat p {
@@ -1137,21 +1137,21 @@
   padding: 10px 15px;
   border: 0;
   border-radius: 11px;
-  background: #e7f2eb;
-  color: #1f6b4f;
+  background: var(--brand-100);
+  color: var(--brand-600);
   cursor: pointer;
   font-weight: 800;
 }
 
 .status {
   padding: 24px;
-  color: #718078;
-  font-size: 12px;
+  color: var(--text-subtle);
+  font-size: var(--text-xs);
   text-align: center;
 }
 
 .error {
-  color: #a13a32;
+  color: var(--danger);
 }
 
 .srOnly {
@@ -1177,7 +1177,7 @@
     display: block;
     height: calc(100vh - 108px);
     min-height: 520px;
-    border-radius: 18px;
+    border-radius: var(--radius-lg);
   }
 
   .conversationRail,

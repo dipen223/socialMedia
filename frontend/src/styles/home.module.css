@@ -1,8 +1,8 @@
 .page {
-  --ink: #17251e;
-  --green: #1f6b4f;
-  --light-green: #e9f3ed;
-  --cream: #fbfaf6;
+  --ink: var(--text);
+  --green: var(--brand-600);
+  --light-green: var(--brand-100);
+  --cream: #ffffff;
   min-height: 100vh;
   overflow: hidden;
   color: var(--ink);
@@ -33,7 +33,7 @@
   gap: 10px;
   color: var(--ink);
   background: transparent;
-  font-size: 20px;
+  font-size: var(--text-lg);
   font-weight: 800;
 }
 
@@ -56,7 +56,7 @@
 .loginButton,
 .navJoinButton {
   padding: 10px 18px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   transition: color 180ms ease, background-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
 }
 
@@ -73,7 +73,7 @@
   bottom: 5px;
   left: 18px;
   height: 2px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--green);
   transform: scaleX(0);
   transform-origin: center;
@@ -96,7 +96,7 @@
 }
 
 .navJoinButton:hover {
-  background: #17583f;
+  background: var(--brand-700);
   box-shadow: 0 9px 20px rgba(31, 107, 79, 0.22);
   transform: translateY(-2px);
 }
@@ -176,7 +176,7 @@
   left: -0.86em;
   width: 0.68em;
   height: 0.05em;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: linear-gradient(90deg, rgba(31, 107, 79, 0.2), rgba(31, 107, 79, 0.95));
   transform: translateY(-50%) scaleX(0.24);
   transform-origin: right center;
@@ -190,7 +190,7 @@
   right: -0.86em;
   width: 0.68em;
   height: 0.05em;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: linear-gradient(90deg, rgba(31, 107, 79, 0.95), rgba(31, 107, 79, 0.2));
   transform: translateY(-50%) scaleX(0.24);
   transform-origin: left center;
@@ -244,7 +244,7 @@
 .heroText {
   max-width: 510px;
   margin-top: 26px;
-  color: #607068;
+  color: var(--text-muted);
   font-size: 18px;
   line-height: 1.7;
 }
@@ -258,7 +258,7 @@
 
 .primaryButton {
   padding: 15px 22px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: white;
   background: var(--green);
   box-shadow: 0 12px 26px rgba(31, 107, 79, 0.22);
@@ -288,7 +288,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  color: #718078;
+  color: var(--text-subtle);
   font-size: 13px;
   line-height: 1.5;
 }
@@ -370,7 +370,7 @@
 
 .sectionHeading p {
   color: var(--green);
-  font-size: 12px;
+  font-size: var(--text-xs);
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -393,7 +393,7 @@
 .featureCard {
   padding: 30px;
   border: 1px solid #e6ebe7;
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   background: #fdfdfb;
 }
 
@@ -402,10 +402,10 @@
   height: 44px;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--green);
   background: var(--light-green);
-  font-size: 20px;
+  font-size: var(--text-lg);
 }
 
 .featureCard h3 {
@@ -416,7 +416,7 @@
 
 .featureCard p {
   margin-top: 10px;
-  color: #718078;
+  color: var(--text-subtle);
   line-height: 1.65;
 }
 
@@ -428,7 +428,7 @@
   align-items: center;
   justify-content: space-between;
   border-top: 1px solid #dfe6e1;
-  color: #718078;
+  color: var(--text-subtle);
   font-size: 13px;
 }
 

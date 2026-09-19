@@ -461,9 +461,9 @@ export default function PostCard({ post, detail = false }) {
       )}
 
       {post.media && (
-        <div className={styles.mediaWrap}>
+        <div className={`${styles.mediaWrap} ${isVideo ? styles.mediaWrapVideo : ""}`}>
           {isVideo ? (
-            <video className={styles.media} src={post.media} controls preload="metadata" />
+            <video className={styles.media} src={post.media} controls playsInline controlsList="nodownload" preload="metadata" />
           ) : (
             <img className={styles.media} src={post.media} alt="Post attachment" />
           )}

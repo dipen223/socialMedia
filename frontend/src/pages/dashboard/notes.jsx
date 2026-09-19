@@ -178,8 +178,10 @@ export default function NotesPage() {
 
         <div className={styles.list}>
           {loading && (
-            <div className={styles.emptyState}>
-              <span>Loading notes...</span>
+            <div role="status" aria-label="Loading notes">
+              <div className={styles.skeleton} />
+              <div className={styles.skeleton} />
+              <div className={styles.skeleton} />
             </div>
           )}
 
