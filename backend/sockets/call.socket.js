@@ -9,6 +9,7 @@ import {
     SUPPORTED_TRANSLATION_LANGUAGES,
 } from "../services/ai.service.js";
 import { PLAN_LIMITS_SECONDS, reportOverageUsage } from "../services/stripe.service.js";
+import { isBlockedBetween } from "../services/safety.service.js";
 
 const calls = new Map();
 const RING_TIMEOUT_MS = 45000;
@@ -343,7 +344,11 @@ const registerCallHandlers = ({ io, socket }) => {
                 .populate("members", "name username profilePicture preferredLanguage voiceGender")
                 .lean();
 
-            if (!conversation || targetUserId === currentUserId) {
+            if (
+                !conversation ||
+                targetUserId === currentUserId ||
+                (await isBlockedBetween(currentUserId, targetUserId))
+            ) {
                 acknowledge({
                     ok: false,
                     message: "This call is not allowed.",

@@ -9,6 +9,7 @@ import Connection from "../models/connections.model.js";
 import { randomUUID } from "crypto";
 import FaceReaction from "../models/faceReaction.model.js";
 import { rankPosts } from "../services/feedRanking.service.js";
+import { dropHiddenReposts, getHiddenUsers, isBlockedBetween } from "../services/safety.service.js";
 
 const MEDIA_LIMITS = {
     image: 10 * 1024 * 1024,
@@ -122,7 +123,8 @@ const createPost = async (req, res) => {
 const getAllPosts = async (req, res) => {
 
     try {
-        const posts = await Post.find({ active: true })
+        const { hidden } = await getHiddenUsers(req.user.id);
+        const posts = dropHiddenReposts(await Post.find({ active: true, userId: { $nin: hidden } })
             .sort({ createdAt: -1 })
             .populate("userId", "name username email profilePicture")
             .populate("faceReactions.userId", "name username")
@@ -131,7 +133,7 @@ const getAllPosts = async (req, res) => {
                 path: "repostOf",
                 populate: { path: "userId", select: "name username profilePicture" },
             })
-            .lean();
+            .lean(), hidden);
 
         const postIds = posts.map((post) => post._id);
 
@@ -176,7 +178,8 @@ const getAllPosts = async (req, res) => {
 // this is tried out.
 const getFeed = async (req, res) => {
     try {
-        const posts = await Post.find({ active: true })
+        const { hidden } = await getHiddenUsers(req.user.id);
+        const posts = dropHiddenReposts(await Post.find({ active: true, userId: { $nin: hidden } })
             .populate("userId", "name username email profilePicture")
             .populate("faceReactions.userId", "name username")
             .populate("faceReactions.reactionId", "name imageUrl ownerId active")
@@ -184,7 +187,7 @@ const getFeed = async (req, res) => {
                 path: "repostOf",
                 populate: { path: "userId", select: "name username profilePicture" },
             })
-            .lean();
+            .lean(), hidden);
 
         const postIds = posts.map((post) => post._id);
 
@@ -307,6 +310,10 @@ const repostPost = async (req, res) => {
     try {
         const original = await Post.findOne({ _id: postId, active: true });
         if (!original) {
+            return res.status(404).json({ message: "Post not found." });
+        }
+        if (await isBlockedBetween(userId, original.userId)) {
+            // Same answer as a missing post - don't confirm it exists.
             return res.status(404).json({ message: "Post not found." });
         }
 
@@ -596,8 +603,10 @@ const getPostsByHashtag = async (req, res) => {
     const searchTag = tag.startsWith("#") ? tag : `#${tag}`;
 
     try {
-        const posts = await Post.find({
+        const { hidden } = await getHiddenUsers(req.user.id);
+        const posts = dropHiddenReposts(await Post.find({
             active: true,
+            userId: { $nin: hidden },
             body: { $regex: searchTag, $options: "i" }
         })
             .sort({ createdAt: -1 })
@@ -606,7 +615,7 @@ const getPostsByHashtag = async (req, res) => {
                 path: "repostOf",
                 populate: { path: "userId", select: "name username profilePicture" },
             })
-            .lean();
+            .lean(), hidden);
 
         const postIds = posts.map((post) => post._id);
 
@@ -684,8 +693,10 @@ const getSavedPosts = async (req, res) => {
 
     try {
         const userObjId = mongoose.isValidObjectId(userId) ? new mongoose.Types.ObjectId(userId) : userId;
-        const posts = await Post.find({
+        const { hidden } = await getHiddenUsers(userId);
+        const posts = dropHiddenReposts(await Post.find({
             active: true,
+            userId: { $nin: hidden },
             $or: [{ savedBy: userId }, { savedBy: userObjId }]
         })
             .sort({ createdAt: -1 })
@@ -694,7 +705,7 @@ const getSavedPosts = async (req, res) => {
                 path: "repostOf",
                 populate: { path: "userId", select: "name username profilePicture" },
             })
-            .lean();
+            .lean(), hidden);
 
         const postIds = posts.map((post) => post._id);
 

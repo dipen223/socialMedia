@@ -8,6 +8,8 @@ import ConnectButton from "@/components/dashboard/ConnectionButton";
 import FaceReactionPicker from "@/components/dashboard/FaceReactionPicker";
 import ReactionDetails from "@/components/dashboard/ReactionDetails";
 import { clientServer } from "@/config";
+import { removePostsByUser } from "@/config/redux/reducer/postReducer";
+import { REPORT_REASONS, blockUser, muteUser, reportContent } from "@/config/safety";
 import { getSocket } from "@/config/socket";
 import styles from "./PostCard.module.css";
 
@@ -129,6 +131,12 @@ export default function PostCard({ post, detail = false }) {
   const [isSaving, setIsSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [removedReason, setRemovedReason] = useState("");
+  // The menu is a small state machine: the normal list, or one of two
+  // confirm/collect steps for actions that need more than a click.
+  const [menuView, setMenuView] = useState("main"); // main | report | block
+  const [reportReason, setReportReason] = useState("spam");
+  const [reportDetails, setReportDetails] = useState("");
+  const [safetyBusy, setSafetyBusy] = useState(false);
   const [notice, setNotice] = useState("");
   const [showComments, setShowComments] = useState(detail);
   const [commentText, setCommentText] = useState("");
@@ -314,6 +322,63 @@ export default function PostCard({ post, detail = false }) {
     );
   }
 
+  const authorId = (author?._id || author)?.toString();
+
+  const finishRestriction = (message) => {
+    dispatch(removePostsByUser(authorId));
+    setIsMenuOpen(false);
+    setRemovedReason(message);
+  };
+
+  const handleBlock = async () => {
+    if (safetyBusy || !authorId) return;
+    setSafetyBusy(true);
+    try {
+      await blockUser(authorId);
+      finishRestriction(`You blocked @${author?.username || "this user"}.`);
+    } catch (error) {
+      setNotice(error.response?.data?.message || "Could not block this user.");
+      setIsMenuOpen(false);
+    } finally {
+      setSafetyBusy(false);
+    }
+  };
+
+  const handleMute = async () => {
+    if (safetyBusy || !authorId) return;
+    setSafetyBusy(true);
+    try {
+      await muteUser(authorId);
+      finishRestriction(`You muted @${author?.username || "this user"}. You can undo this in Settings.`);
+    } catch (error) {
+      setNotice(error.response?.data?.message || "Could not mute this user.");
+      setIsMenuOpen(false);
+    } finally {
+      setSafetyBusy(false);
+    }
+  };
+
+  const handleReport = async (event) => {
+    event.preventDefault();
+    if (safetyBusy) return;
+    setSafetyBusy(true);
+    try {
+      await reportContent({
+        targetType: "post",
+        targetId: post._id,
+        reason: reportReason,
+        details: reportDetails,
+      });
+      setReportDetails("");
+      setNotice("Thanks - we'll review this post.");
+    } catch (error) {
+      setNotice(error.response?.data?.message || "Could not send the report.");
+    } finally {
+      setSafetyBusy(false);
+      setIsMenuOpen(false);
+    }
+  };
+
   const handleDelete = async () => {
     try {
       await dispatch(deletePost(post._id)).unwrap();
@@ -386,14 +451,48 @@ export default function PostCard({ post, detail = false }) {
             aria-label="Post options"
             aria-haspopup="menu"
             aria-expanded={isMenuOpen}
-            onClick={() => setIsMenuOpen((open) => !open)}
+            onClick={() => {
+              setMenuView("main");
+              setIsMenuOpen((open) => !open);
+            }}
           >
             <MoreIcon />
           </button>
 
           {isMenuOpen && (
             <div className={styles.menu} role="menu">
-              {showDeleteConfirm ? (
+              {menuView === "report" ? (
+                <form className={styles.safetyPanel} onSubmit={handleReport}>
+                  <strong>Why are you reporting this?</strong>
+                  <select value={reportReason} onChange={(event) => setReportReason(event.target.value)} aria-label="Reason">
+                    {REPORT_REASONS.map((reason) => (
+                      <option key={reason.value} value={reason.value}>{reason.label}</option>
+                    ))}
+                  </select>
+                  <textarea
+                    value={reportDetails}
+                    onChange={(event) => setReportDetails(event.target.value)}
+                    maxLength={500}
+                    placeholder="Anything else we should know? (optional)"
+                    aria-label="Details"
+                  />
+                  <div>
+                    <button type="button" onClick={() => setMenuView("main")}>Back</button>
+                    <button type="submit" disabled={safetyBusy}>{safetyBusy ? "Sending..." : "Send report"}</button>
+                  </div>
+                </form>
+              ) : menuView === "block" ? (
+                <div className={styles.safetyPanel}>
+                  <strong>Block @{author?.username || "this user"}?</strong>
+                  <p>You will stop seeing each other&apos;s posts and comments, and neither of you can message, call or connect. They are not told.</p>
+                  <div>
+                    <button type="button" onClick={() => setMenuView("main")}>Cancel</button>
+                    <button type="button" className={styles.dangerOption} disabled={safetyBusy} onClick={handleBlock}>
+                      {safetyBusy ? "Blocking..." : "Block"}
+                    </button>
+                  </div>
+                </div>
+              ) : showDeleteConfirm ? (
                 <div className={styles.deleteConfirm}>
                   <strong>Delete this post?</strong>
 
@@ -428,9 +527,17 @@ export default function PostCard({ post, detail = false }) {
                         <span className={styles.menuIcon}><HideIcon /></span>
                         <strong>Hide</strong>
                       </button>
-                      <button role="menuitem" type="button" onClick={() => closeAfter(() => setNotice("Thanks. Your report choice was recorded locally."))}>
+                      <button role="menuitem" type="button" onClick={() => setMenuView("report")}>
                         <span className={styles.menuIcon}><ReportIcon /></span>
                         <strong>Report</strong>
+                      </button>
+                      <button role="menuitem" type="button" disabled={safetyBusy} onClick={() => handleMute()}>
+                        <span className={styles.menuIcon}><HideIcon /></span>
+                        <strong>Mute @{author?.username || "user"}</strong>
+                      </button>
+                      <button className={styles.dangerOption} role="menuitem" type="button" onClick={() => setMenuView("block")}>
+                        <span className={styles.menuIcon}><DeleteIcon /></span>
+                        <strong>Block @{author?.username || "user"}</strong>
                       </button>
                     </>
                   )}

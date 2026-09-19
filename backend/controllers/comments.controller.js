@@ -1,6 +1,7 @@
 import Comment from "../models/comments.model.js";
 import Post from "../models/posts.model.js";
 import Notification from "../models/notification.model.js";
+import { getHiddenUsers } from "../services/safety.service.js";
 
 const createComment = async (req, res) => {
     const userId = req.user.id;
@@ -56,7 +57,8 @@ const getCommentsByPost = async (req, res) => {
 
         }
 
-        const comments = await Comment.find({ postId })
+        const { hidden } = await getHiddenUsers(req.user.id);
+        const comments = await Comment.find({ postId, userId: { $nin: hidden } })
             .populate("userId", "name username profilePicture")
             .sort({ createdAt: -1 });
 

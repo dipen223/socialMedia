@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Post from "../models/posts.model.js";
 import Comment from "../models/comments.model.js";
 import { withVideoDelivery, videoThumbnail } from "../services/cloudinaryVideo.service.js";
+import { getHiddenUsers } from "../services/safety.service.js";
 
 const DEFAULT_LIMIT = 5;
 const MAX_LIMIT = 20;
@@ -16,7 +17,8 @@ const getReels = async (req, res) => {
     // Every video post is a reel - there's no separate reel type. Posting a
     // video puts it in the main feed AND here; this tab is just the
     // video-only view of the same posts.
-    const query = { active: true, mediaResourceType: "video" };
+    const { hidden } = await getHiddenUsers(req.user.id);
+    const query = { active: true, mediaResourceType: "video", userId: { $nin: hidden } };
 
     if (req.query.before) {
         if (!mongoose.isValidObjectId(req.query.before)) {

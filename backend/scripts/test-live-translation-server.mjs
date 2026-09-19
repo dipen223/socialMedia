@@ -12,6 +12,7 @@ process.env.ENFORCE_TRANSLATION_BILLING = "true";
 
 const { default: User } = await import("../models/user.model.js");
 const { default: Conversation } = await import("../models/conversations.model.js");
+const { default: Block } = await import("../models/block.model.js");
 const { default: registerCallHandlers } = await import("../sockets/call.socket.js");
 
 let failed = 0;
@@ -30,6 +31,8 @@ const usage = [];
 User.findById = (id) => ({
     select: () => ({ lean: async () => ({ plan: plans[id] || "free", translationSecondsUsed: 0 }) }),
 });
+// Nobody is blocked in these tests (the ids here aren't real ObjectIds).
+Block.exists = async () => null;
 User.updateOne = async (filter, update) => {
     usage.push({ filter, update });
     return {};

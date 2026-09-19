@@ -14,6 +14,7 @@ import faceReactionRouter from "./faceReaction.router.js";
 import billingRouter from "./billing.router.js";
 import reelsRouter from "./reels.router.js";
 import notesRouter from "./notes.router.js";
+import safetyRouter from "./safety.router.js";
 
 const router = express.Router();
 
@@ -31,6 +32,7 @@ router.use(discussionRoomRouter);
 router.use(faceReactionRouter);
 router.use(reelsRouter);
 router.use(notesRouter);
+router.use(safetyRouter);
 router.use("/api/stories", storyRouter);
 
 
