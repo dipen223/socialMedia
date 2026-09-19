@@ -1,0 +1,92 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 480px;
+  margin: 0 auto;
+  padding-bottom: 20px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.createButton {
+  padding: 9px 18px;
+  border-radius: 999px;
+  background: #10b981;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+/* The swipe container. scroll-snap-type: y mandatory means a scroll always
+   settles on a slide boundary - never halfway between two reels. Pair it with
+   scroll-snap-align on each slide below. */
+.viewport {
+  height: 78vh;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  border-radius: 18px;
+  background: #0f172a;
+  scrollbar-width: none;
+}
+
+.viewport::-webkit-scrollbar {
+  display: none;
+}
+
+
+
+
+
+
+
+
+
+.status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 20px;
+  text-align: center;
+  color: #64748b;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+}
+
+.status p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.error {
+  padding: 16px;
+  border-radius: 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  font-size: 14px;
+}
+
+.notice {
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #047857;
+  font-size: 13px;
+}
