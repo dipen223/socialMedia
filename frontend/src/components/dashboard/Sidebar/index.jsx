@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { useRouter } from "next/router";
+import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
+import { fetchAdminStatus } from "@/config/admin";
 import styles from "./Sidebar.module.css";
 
 
@@ -8,6 +10,19 @@ const Sidebar = () => {
   const router = useRouter();
   const profile = useSelector((state) => state.auth.user);
   const user = profile?.userId || profile;
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const admin = await fetchAdminStatus();
+      if (!cancelled) setIsAdmin(admin);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const sidebarOptions = [
     { href: "/dashboard", label: "Home" },
     { href: user?.username ? `/${user.username}` : "/dashboard/profile", label: "My Profile", profile: true },
@@ -19,6 +34,8 @@ const Sidebar = () => {
     { href: "/dashboard/discover", label: "Discover People" },
     { href: "/dashboard/pricing", label: "Plans & Billing" },
     { href: "/dashboard/settings", label: "Settings" },
+    // Only shown to admins - the routes behind it are protected on the server.
+    ...(isAdmin ? [{ href: "/dashboard/admin/reports", label: "Review reports" }] : []),
   ];
 
   return (

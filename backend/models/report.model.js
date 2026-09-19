@@ -1,5 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 
+export const REPORT_STATUSES = ["open", "reviewed", "dismissed"];
+
 export const REPORT_REASONS = [
     "spam",
     "harassment",
@@ -48,6 +50,16 @@ const reportSchema = new Schema({
         type: String,
         enum: ["open", "reviewed", "dismissed"],
         default: "open",
+    },
+    // Who handled it and when - kept so decisions can be traced later.
+    reviewedBy: {
+        type: Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+    },
+    reviewedAt: {
+        type: Date,
+        default: null,
     },
 }, {
     timestamps: true,

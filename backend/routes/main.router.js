@@ -15,6 +15,7 @@ import billingRouter from "./billing.router.js";
 import reelsRouter from "./reels.router.js";
 import notesRouter from "./notes.router.js";
 import safetyRouter from "./safety.router.js";
+import adminRouter from "./admin.router.js";
 
 const router = express.Router();
 
@@ -33,6 +34,7 @@ router.use(faceReactionRouter);
 router.use(reelsRouter);
 router.use(notesRouter);
 router.use(safetyRouter);
+router.use(adminRouter);
 router.use("/api/stories", storyRouter);
 
 

@@ -1,0 +1,246 @@
+.page {
+  display: grid;
+  gap: 16px;
+  max-width: 820px;
+  padding-bottom: 48px;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: var(--text-xl);
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+
+.header p {
+  margin: 4px 0 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.tab,
+.tabActive {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tabActive {
+  border-color: var(--brand-600);
+  background: var(--brand-100);
+  color: var(--brand-700);
+}
+
+.list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.card {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.reason {
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--brand-100);
+  color: var(--brand-700);
+  font-size: var(--text-xs);
+  font-weight: 800;
+}
+
+.meta {
+  font-size: var(--text-xs);
+  color: var(--text-subtle);
+}
+
+.people {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.people a {
+  color: var(--brand-700);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.repeat {
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: #fff0ee;
+  color: var(--danger);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.details {
+  margin: 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--border-strong);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.content {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+  font-size: var(--text-sm);
+  color: var(--text);
+}
+
+.content p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.content em {
+  color: var(--text-subtle);
+}
+
+.content img,
+.content video {
+  max-width: 100%;
+  max-height: 260px;
+  border-radius: var(--radius-sm);
+  object-fit: contain;
+  background: #0b1410;
+}
+
+.hiddenTag {
+  justify-self: start;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--border);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.link {
+  color: var(--brand-700);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.actions button {
+  padding: 7px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.actions button:hover:not(:disabled) {
+  background: var(--brand-100);
+  color: var(--brand-700);
+}
+
+.actions button.danger {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.actions button.danger:hover:not(:disabled) {
+  background: #fff0ee;
+  color: var(--danger);
+}
+
+.actions button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.more {
+  justify-self: center;
+  padding: 9px 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--brand-700);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.status,
+.error {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.status {
+  color: var(--text-muted);
+}
+
+.error {
+  color: var(--danger);
+}
+
+.empty {
+  padding: 40px 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  text-align: center;
+}
+
+.empty h1,
+.empty h2 {
+  margin: 0 0 6px;
+  color: var(--text);
+}
+
+.empty p {
+  margin: 0;
+  color: var(--text-muted);
+}

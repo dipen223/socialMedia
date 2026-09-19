@@ -52,6 +52,13 @@ const userSchema = new Schema({
         enum: ["female", "male"],
         default: "female",
     },
+    // Only ever changed from the command line (scripts/set-admin.mjs) - no
+    // endpoint accepts it from a request, so nobody can promote themselves.
+    role: {
+        type: String,
+        enum: ["user", "admin"],
+        default: "user",
+    },
     createdAt: {
         type: Date,
         default: Date.now,
