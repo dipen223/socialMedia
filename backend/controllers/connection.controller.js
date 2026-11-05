@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Connection from "../models/connections.model.js";
 import User from "../models/user.model.js";
 import Notification from "../models/notification.model.js";
+import { isBlockedBetween } from "../services/safety.service.js";
 
 const sendConnectionRequest = async (req, res) => {
     const requesterId = req.user.id;
@@ -23,6 +24,10 @@ const sendConnectionRequest = async (req, res) => {
         const recipient = await User.findById(recipientId);
         if (!recipient) {
             return res.status(404).json({ message: "User not found." });
+        }
+
+        if (await isBlockedBetween(requesterId, recipientId)) {
+            return res.status(403).json({ message: "You can't connect with this person." });
         }
 
         const existingConnection = await Connection.findOne({

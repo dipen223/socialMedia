@@ -2,10 +2,17 @@
 // database and a stubbed OpenAI - no network, no DB. Run with:
 //   node backend/scripts/test-live-translation-server.mjs
 process.env.OPENAI_API_KEY = "test-key";
+// Importing the real handlers pulls in config that insists these exist. Dummy
+// values are enough here (nothing calls Cloudinary), and they let this run in
+// CI where there is no .env file.
+process.env.CLOUDINARY_CLOUD_NAME ||= "test";
+process.env.CLOUDINARY_API_KEY ||= "test";
+process.env.CLOUDINARY_API_SECRET ||= "test";
 process.env.ENFORCE_TRANSLATION_BILLING = "true";
 
 const { default: User } = await import("../models/user.model.js");
 const { default: Conversation } = await import("../models/conversations.model.js");
+const { default: Block } = await import("../models/block.model.js");
 const { default: registerCallHandlers } = await import("../sockets/call.socket.js");
 
 let failed = 0;
@@ -24,6 +31,8 @@ const usage = [];
 User.findById = (id) => ({
     select: () => ({ lean: async () => ({ plan: plans[id] || "free", translationSecondsUsed: 0 }) }),
 });
+// Nobody is blocked in these tests (the ids here aren't real ObjectIds).
+Block.exists = async () => null;
 User.updateOne = async (filter, update) => {
     usage.push({ filter, update });
     return {};

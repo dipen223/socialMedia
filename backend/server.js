@@ -28,6 +28,7 @@ const allowedOrigins = [
   "http://localhost:3000",
   "https://linen-sunbeam-424013-f8.web.app",
   "https://web-frontend--linen-sunbeam-424013-f8.us-east4.hosted.app",
+  "https://socialmedia-2-hum7.onrender.com",
   process.env.FRONTEND_URL
 ].filter(Boolean);
 

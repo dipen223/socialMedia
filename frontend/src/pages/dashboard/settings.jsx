@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import SectionPanel from "@/components/dashboard/SectionPanel";
 import { clientServer } from "@/config";
 import { getUserProfile } from "@/config/redux/action/authAction";
 import { LANGUAGES } from "@/config/languages";
+import { fetchRestrictions, unblockUser, unmuteUser } from "@/config/safety";
 import styles from "@/styles/settings.module.css";
 
 export default function SettingsPage() {
@@ -18,6 +19,42 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(null);
   const [savingVoice, setSavingVoice] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [restrictions, setRestrictions] = useState([]);
+  const [restrictionsLoaded, setRestrictionsLoaded] = useState(false);
+  const [liftingId, setLiftingId] = useState(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows = await fetchRestrictions();
+        if (!cancelled) setRestrictions(rows);
+      } catch {
+        // The section simply stays empty if this can't load.
+      } finally {
+        if (!cancelled) setRestrictionsLoaded(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const liftRestriction = async (entry) => {
+    if (liftingId) return;
+    setLiftingId(entry.user._id);
+    setErrorMsg("");
+    try {
+      await (entry.kind === "block" ? unblockUser : unmuteUser)(entry.user._id);
+      setRestrictions((current) =>
+        current.filter((item) => item.user._id !== entry.user._id)
+      );
+    } catch (err) {
+      setErrorMsg(err.response?.data?.message || "Could not update that.");
+    } finally {
+      setLiftingId(null);
+    }
+  };
 
   const filteredLanguages = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -147,6 +184,38 @@ export default function SettingsPage() {
               );
             })}
           </div>
+        </div>
+
+        <div className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h3>Blocked and muted</h3>
+            <p>
+              Blocked people can&apos;t see your posts or contact you. Muted
+              people are hidden from your feed without being told.
+            </p>
+          </div>
+
+          {restrictionsLoaded && restrictions.length === 0 && (
+            <p className={styles.restrictionEmpty}>You haven&apos;t blocked or muted anyone.</p>
+          )}
+
+          <ul className={styles.restrictionList}>
+            {restrictions.map((entry) => (
+              <li key={entry.user._id} className={styles.restrictionRow}>
+                <span>
+                  <strong>{entry.user.name}</strong>
+                  <small>@{entry.user.username} · {entry.kind === "block" ? "Blocked" : "Muted"}</small>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => liftRestriction(entry)}
+                  disabled={liftingId === entry.user._id}
+                >
+                  {entry.kind === "block" ? "Unblock" : "Unmute"}
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
       </SectionPanel>
     </DashboardLayout>

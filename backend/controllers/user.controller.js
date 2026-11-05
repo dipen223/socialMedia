@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import cloudinary from "../config/cloudinary.js";
 import PDFDocument from "pdfkit";
+import { getHiddenUsers } from "../services/safety.service.js";
 const convertUserDataToPDF = async (userData) => {
     const document = new PDFDocument();
     const chunks = [];
@@ -328,7 +329,10 @@ const getAllUserProfile = async (req, res) => {
     ;
 
     try {
-        const profiles = await Profile.find().populate("userId", "name username email profilePicture");
+        // Discovery lists must not resurface people who blocked me or I blocked.
+        const { blocked } = await getHiddenUsers(req.user.id);
+        const profiles = await Profile.find({ userId: { $nin: blocked } })
+            .populate("userId", "name username email profilePicture");
 
         if (profiles.length == 0) {
             return res.status(404).json({ message: "Profiles not found!" });
@@ -388,8 +392,10 @@ const searchPeople = async (req, res) => {
 
     try {
         const safeQuery = escapeRegExp(query);
+        const { blocked } = await getHiddenUsers(req.user.id);
 
         const people = await User.find({
+            _id: { $nin: blocked },
             $or: [
                 {
                     name: {

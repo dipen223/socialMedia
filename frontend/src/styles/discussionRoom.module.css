@@ -1098,3 +1098,20 @@
     display: flex;
   }
 }
+
+/* "Translated · See original" under a chat message that was translated for you. */
+.translationToggle {
+  justify-self: flex-start;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #8fb8a3;
+  font-size: 10px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.translationToggle:hover {
+  color: #fff;
+}

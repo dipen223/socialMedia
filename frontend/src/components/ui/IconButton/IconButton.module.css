@@ -1,0 +1,79 @@
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-muted);
+  transition: background-color var(--transition-fast), color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+/* --- variants --- */
+
+.ghost:hover:not(:disabled) {
+  background: var(--brand-50);
+  color: var(--brand-700);
+}
+
+.solid {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.solid:hover:not(:disabled) {
+  border-color: var(--brand-300);
+  background: var(--surface-muted);
+}
+
+/* For icon buttons sitting on top of media, where the page background can be
+   any colour and a normal hover state would be invisible. */
+.overlay {
+  background: rgba(15, 23, 42, 0.55);
+  color: #fff;
+  backdrop-filter: blur(4px);
+}
+
+.overlay:hover:not(:disabled) {
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.active {
+  color: var(--brand-600);
+  background: var(--brand-100);
+}
+
+.iconButton:disabled {
+  opacity: 0.5;
+}
+
+/* --- sizes ---
+   Every size keeps a >=36px box. Anything smaller is genuinely hard to hit
+   on a touchscreen, which is where most of this app gets used. */
+
+.sm {
+  width: 36px;
+  height: 36px;
+}
+
+.md {
+  width: 40px;
+  height: 40px;
+}
+
+.lg {
+  width: 48px;
+  height: 48px;
+}
+
+.icon {
+  width: 19px;
+  height: 19px;
+}
+
+.lg .icon {
+  width: 22px;
+  height: 22px;
+}

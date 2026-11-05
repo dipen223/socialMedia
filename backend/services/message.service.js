@@ -6,6 +6,7 @@ import Notification from "../models/notification.model.js";
 import User from "../models/user.model.js";
 import ApplicationError from "../utils/applicationError.js";
 import { translateMessageText } from "./ai.service.js";
+import { isBlockedBetween } from "./safety.service.js";
 
 const ATTACHMENT_LIMITS = {
     image: 10 * 1024 * 1024,
@@ -39,6 +40,22 @@ const getConversation = async (conversationId, currentUserId) => {
     }
 
     return conversation;
+};
+
+// In a one-to-one conversation, either person having blocked the other ends
+// the ability to send. (Group conversations are unaffected.)
+const assertNotBlocked = async (conversation, currentUserId) => {
+    const others = (conversation.members || [])
+        .map((member) => member.toString())
+        .filter((id) => id !== currentUserId.toString());
+    if (others.length !== 1) return;
+    if (await isBlockedBetween(currentUserId, others[0])) {
+        throw new ApplicationError(
+            "You can't message this person.",
+            403,
+            "MESSAGE_BLOCKED"
+        );
+    }
 };
 
 const verifyAttachment = async (attachment, currentUserId) => {
@@ -139,6 +156,7 @@ const createTextMessage = async ({
     }
 
     const conversation = await getConversation(conversationId, currentUserId);
+    await assertNotBlocked(conversation, currentUserId);
     const attachment = await verifyAttachment(rawAttachment, currentUserId);
     const message = await Message.create({
         conversationId: conversation._id,

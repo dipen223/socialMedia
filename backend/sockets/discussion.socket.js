@@ -3,6 +3,8 @@ import DiscussionRoom from "../models/discussionRoom.model.js";
 import User from "../models/user.model.js";
 import { closePublisherSessions } from "../services/discussionMedia.service.js";
 import DiscussionMessage from "../models/discussionMessage.model.js";
+import { translateMessageText } from "../services/ai.service.js";
+import { translateRoomMessage } from "../services/discussionTranslation.service.js";
 
 const rooms = new Map();
 
@@ -60,6 +62,41 @@ const leaveRoom = async (io, socket, roomId) => {
     await persistCount(roomId, count);
 };
 
+// Translates a just-sent chat message into the other languages in the room and
+// pushes the result as its own event, so the original is already on screen.
+const publishTranslations = async ({ io, roomId, message, senderId }) => {
+    try {
+        const state = rooms.get(roomId);
+        if (!state) return;
+        const participants = [...state.participants.values()];
+        const sender = state.participants.get(senderId);
+
+        const translations = await translateRoomMessage({
+            body: message.body,
+            senderLang: sender?.language,
+            participantLangs: participants.map((person) => person.language),
+            translate: translateMessageText,
+            onError: (lang, error) =>
+                console.error(`Room message translation failed (${lang}):`, error.message),
+        });
+        if (translations.length === 0) return;
+
+        // Skip if the message was deleted while it was being translated.
+        const saved = await DiscussionMessage.findOneAndUpdate(
+            { _id: message._id, deletedAt: null },
+            { $set: { translations } }
+        );
+        if (!saved) return;
+
+        io.to(`discussion:${roomId}`).emit("discussion:message:translated", {
+            messageId: message._id.toString(),
+            translations,
+        });
+    } catch (error) {
+        console.error("Could not translate discussion message:", error.message);
+    }
+};
+
 const registerDiscussionHandlers = ({ io, socket }) => {
     socket.data.discussionRooms = new Set();
 
@@ -74,7 +111,7 @@ const registerDiscussionHandlers = ({ io, socket }) => {
         try {
             const [room, user] = await Promise.all([
                 DiscussionRoom.findOne({ _id: roomId, status: "live" }).lean(),
-                User.findById(socket.user.id).select("name username profilePicture").lean(),
+                User.findById(socket.user.id).select("name username profilePicture preferredLanguage").lean(),
             ]);
             if (!room || !user) {
                 acknowledge({ ok: false, message: "This discussion has ended." });
@@ -103,6 +140,7 @@ const registerDiscussionHandlers = ({ io, socket }) => {
                     name: user.name,
                     username: user.username,
                     profilePicture: user.profilePicture,
+                    language: user.preferredLanguage || "en-US",
                     role,
                     muted: true,
                     requestedToSpeak: false,
@@ -233,6 +271,8 @@ const registerDiscussionHandlers = ({ io, socket }) => {
                 message: message.toObject(),
             });
             acknowledge({ ok: true, messageId: message._id.toString() });
+            // After the ack: translation must never delay a message showing up.
+            publishTranslations({ io, roomId, message, senderId: socket.user.id.toString() });
         } catch (error) {
             console.error("Could not send discussion message:", error.message);
             acknowledge({ ok: false, message: "Could not send the message." });

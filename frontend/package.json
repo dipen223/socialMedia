@@ -6,11 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node scripts/test-live-translation.mjs && node scripts/test-onboarding.mjs"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.12.0",
     "axios": "^1.18.1",
+    "lucide-react": "^1.48.0",
     "next": "16.2.10",
     "react": "19.2.4",
     "react-dom": "19.2.4",

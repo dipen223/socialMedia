@@ -31,6 +31,13 @@ const postSlice = createSlice({
         resetPostId: (state) => {
             state.postId = ""
         },
+        // After blocking or muting someone, drop their posts from the feed that
+        // is already on screen instead of waiting for the next refresh.
+        removePostsByUser: (state, action) => {
+            state.posts = state.posts.filter(
+                (post) => (post.userId?._id || post.userId)?.toString() !== action.payload
+            );
+        },
     },
     extraReducers: (builder) => {
         builder.
@@ -120,5 +127,5 @@ const postSlice = createSlice({
 
 });
 
-export const { reset, resetPostId, setUploadProgress } = postSlice.actions;
+export const { reset, resetPostId, setUploadProgress, removePostsByUser } = postSlice.actions;
 export default postSlice.reducer;

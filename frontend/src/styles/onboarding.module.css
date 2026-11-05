@@ -1,0 +1,246 @@
+.page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px 16px;
+  background: linear-gradient(160deg, var(--brand-100) 0%, var(--bg) 55%);
+}
+
+.card {
+  width: min(100%, 640px);
+  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+.card h1 {
+  margin: 0 0 8px;
+  font-size: var(--text-xl);
+  letter-spacing: -0.5px;
+  color: var(--text);
+}
+
+.card h2 {
+  margin: 24px 0 4px;
+  font-size: var(--text-base);
+  color: var(--text);
+}
+
+.lead {
+  margin: 0 0 20px;
+  font-size: var(--text-base);
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.hint {
+  margin: 0 0 10px;
+  font-size: var(--text-sm);
+  color: var(--text-subtle);
+}
+
+.progress {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 24px;
+  padding: 0;
+  list-style: none;
+}
+
+.progress li {
+  flex: 1;
+  padding-top: 8px;
+  border-top: 3px solid var(--border);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--text-subtle);
+}
+
+.progress li.progressActive {
+  border-top-color: var(--brand-600);
+  color: var(--brand-700);
+}
+
+.progress li.progressDone {
+  border-top-color: var(--brand-300);
+  color: var(--brand-600);
+}
+
+.languageGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+.voiceRow {
+  display: flex;
+  gap: 8px;
+}
+
+.language,
+.languageActive {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.language:hover {
+  background: var(--surface-muted);
+}
+
+.languageActive {
+  border-color: var(--brand-600);
+  background: var(--brand-100);
+  color: var(--brand-700);
+}
+
+.people {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.avatar {
+  display: grid;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--brand-100);
+  color: var(--brand-700);
+  font-size: var(--text-sm);
+  font-weight: 800;
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.personText {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.personText strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-sm);
+  color: var(--text);
+}
+
+.personText small {
+  font-size: var(--text-xs);
+  color: var(--text-subtle);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.primary {
+  padding: 11px 22px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--brand-600);
+  color: #fff;
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primary:hover {
+  background: var(--brand-700);
+}
+
+.primary:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.skip {
+  padding: 10px 14px;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.error {
+  margin: 16px 0 0;
+  font-size: var(--text-sm);
+  color: var(--danger);
+}
+
+.done {
+  padding: 24px 0;
+  text-align: center;
+}
+
+.done .actions {
+  justify-content: center;
+}
+
+.loading {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--brand-200);
+  border-top-color: var(--brand-600);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 520px) {
+  .card {
+    padding: 22px 18px;
+  }
+}

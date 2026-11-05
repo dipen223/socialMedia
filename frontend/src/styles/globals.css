@@ -20,6 +20,8 @@
   --text-subtle: #6f7e76;
 
   --danger: #a13a32;
+  --danger-surface: #fdf1f0;
+  --danger-border: #f0cdc9;
 
   /* Type scale */
   --text-xs: 12px;
@@ -37,6 +39,33 @@
   /* Elevation */
   --shadow-sm: 0 1px 2px rgba(23, 37, 30, 0.05), 0 4px 12px rgba(23, 37, 30, 0.04);
   --shadow-md: 0 10px 30px rgba(23, 37, 30, 0.08);
+  --shadow-lg: 0 24px 60px rgba(23, 37, 30, 0.16);
+
+  /* Spacing - a 4px base step. Every gap/padding should come from here, so
+     rhythm stays consistent instead of drifting per component. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* Focus - one visible ring for every interactive element. Keyboard users
+     can't use the app without this, and it's the detail most generated UI
+     leaves out. */
+  --ring: 0 0 0 3px var(--brand-200);
+  --ring-danger: 0 0 0 3px var(--danger-border);
+
+  /* Motion */
+  --transition-fast: 120ms ease;
+  --transition-base: 200ms ease;
+
+  /* Layout */
+  --header-height: 64px;
+  --content-max: 680px;
 }
 
 * {
@@ -45,103 +74,64 @@
   box-sizing: border-box;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* button,
-input {
+/* Form controls don't inherit typography by default - without this every
+   button and input silently falls back to the browser's font. */
+button,
+input,
+textarea,
+select {
   font: inherit;
+  color: inherit;
 }
 
-.auth-page {
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-}
-
-.auth-card {
-  width: min(100%, 420px);
-  padding: 32px;
-  background: white;
-  border: 1px solid #dde3ee;
-  border-radius: 16px;
-  box-shadow: 0 16px 40px rgba(31, 45, 75, 0.1);
-}
-
-.eyebrow {
-  color: #526de8;
-  font-weight: 700;
-  margin-bottom: 8px;
-}
-
-.subtitle {
-  color: #687086;
-  margin: 8px 0 24px;
-}
-
-form {
-  display: grid;
-  gap: 10px;
-}
-
-label {
-  margin-top: 6px;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-input {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #cbd3e1;
-  border-radius: 8px;
-}
-
-input:focus {
-  outline: 2px solid #526de8;
-  border-color: transparent;
-}
-
-.primary-button {
-  width: 100%;
-  margin-top: 12px;
-  padding: 12px;
-  border: 0;
-  border-radius: 8px;
-  background: #526de8;
-  color: white;
+button {
   cursor: pointer;
 }
 
-.primary-button:disabled {
-  opacity: 0.65;
-  cursor: wait;
+button:disabled {
+  cursor: not-allowed;
 }
 
-.text-button {
+img,
+video {
+  max-width: 100%;
   display: block;
-  margin: 18px auto 0;
-  border: 0;
-  background: none;
-  color: #4059c7;
-  cursor: pointer;
 }
 
-.message {
-  padding: 10px;
-  border-radius: 8px;
+a {
+  color: inherit;
 }
 
-.error {
-  color: #a61b1b;
-  background: #ffeded;
+/* :focus-visible, not :focus - shows the ring for keyboard navigation without
+   putting an outline on every mouse click. */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+  border-radius: var(--radius-sm);
 }
 
-.success {
-  color: #146b35;
-  background: #eaf8ef;
-} */
+/* Respect users who've asked their OS to reduce motion - vestibular disorders
+   make animation genuinely painful, and it's a one-block fix. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

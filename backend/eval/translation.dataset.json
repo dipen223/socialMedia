@@ -1,0 +1,534 @@
+{
+  "meta": {
+    "description": "Short conversational phrases for scoring live-call translation. References were written by hand - have a native speaker review them before trusting small score differences. chrF is a rough proxy: many different translations are equally correct.",
+    "version": 1,
+    "count": 47
+  },
+  "items": [
+    {
+      "id": "en-es-MX-01",
+      "sourceLang": "en-US",
+      "targetLang": "es-MX",
+      "source": "Hi, how are you doing today?",
+      "reference": "Hola, ¿cómo estás hoy?",
+      "tags": [
+        "greeting"
+      ]
+    },
+    {
+      "id": "en-es-MX-02",
+      "sourceLang": "en-US",
+      "targetLang": "es-MX",
+      "source": "Can you send me the report by tomorrow at 3:30 PM?",
+      "reference": "¿Puedes enviarme el informe para mañana a las 3:30 p. m.?",
+      "tags": [
+        "time",
+        "number"
+      ],
+      "mustContain": [
+        "3:30"
+      ]
+    },
+    {
+      "id": "en-es-MX-03",
+      "sourceLang": "en-US",
+      "targetLang": "es-MX",
+      "source": "I'll meet you at the station at 6 o'clock.",
+      "reference": "Nos vemos en la estación a las 6 en punto.",
+      "tags": [
+        "time",
+        "number"
+      ],
+      "mustContain": [
+        "6"
+      ]
+    },
+    {
+      "id": "en-es-MX-04",
+      "sourceLang": "en-US",
+      "targetLang": "es-MX",
+      "source": "It costs 250 dollars, which is too expensive for me.",
+      "reference": "Cuesta 250 dólares, que es demasiado caro para mí.",
+      "tags": [
+        "number",
+        "money"
+      ],
+      "mustContain": [
+        "250"
+      ]
+    },
+    {
+      "id": "en-es-MX-05",
+      "sourceLang": "en-US",
+      "targetLang": "es-MX",
+      "source": "Please don't tell anyone about this.",
+      "reference": "Por favor, no le digas a nadie sobre esto.",
+      "tags": [
+        "negation"
+      ]
+    },
+    {
+      "id": "en-es-MX-06",
+      "sourceLang": "en-US",
+      "targetLang": "es-MX",
+      "source": "My friend Alex is coming to visit next week.",
+      "reference": "Mi amigo Alex viene de visita la próxima semana.",
+      "tags": [
+        "name"
+      ],
+      "mustContain": [
+        "Alex"
+      ]
+    },
+    {
+      "id": "en-es-MX-07",
+      "sourceLang": "en-US",
+      "targetLang": "es-MX",
+      "source": "Break a leg at your interview tomorrow!",
+      "reference": "¡Mucha suerte en tu entrevista de mañana!",
+      "tags": [
+        "idiom"
+      ]
+    },
+    {
+      "id": "en-es-MX-08",
+      "sourceLang": "en-US",
+      "targetLang": "es-MX",
+      "source": "Um, I was, like, thinking we could maybe go out later?",
+      "reference": "Eh, estaba pensando que tal vez podríamos salir más tarde, ¿no?",
+      "tags": [
+        "filler",
+        "speech"
+      ]
+    },
+    {
+      "id": "en-es-MX-09",
+      "sourceLang": "en-US",
+      "targetLang": "es-MX",
+      "source": "Where is the nearest pharmacy?",
+      "reference": "¿Dónde está la farmacia más cercana?",
+      "tags": [
+        "question"
+      ]
+    },
+    {
+      "id": "en-es-MX-10",
+      "sourceLang": "en-US",
+      "targetLang": "es-MX",
+      "source": "Thank you so much for your help yesterday.",
+      "reference": "Muchas gracias por tu ayuda de ayer.",
+      "tags": [
+        "thanks"
+      ]
+    },
+    {
+      "id": "en-fr-FR-01",
+      "sourceLang": "en-US",
+      "targetLang": "fr-FR",
+      "source": "Hi, how are you doing today?",
+      "reference": "Salut, comment vas-tu aujourd'hui ?",
+      "tags": [
+        "greeting"
+      ]
+    },
+    {
+      "id": "en-fr-FR-02",
+      "sourceLang": "en-US",
+      "targetLang": "fr-FR",
+      "source": "Can you send me the report by tomorrow at 3:30 PM?",
+      "reference": "Peux-tu m'envoyer le rapport d'ici demain à 15 h 30 ?",
+      "tags": [
+        "time",
+        "number"
+      ],
+      "mustContain": [
+        "15",
+        "30"
+      ]
+    },
+    {
+      "id": "en-fr-FR-04",
+      "sourceLang": "en-US",
+      "targetLang": "fr-FR",
+      "source": "It costs 250 dollars, which is too expensive for me.",
+      "reference": "Ça coûte 250 dollars, ce qui est trop cher pour moi.",
+      "tags": [
+        "number",
+        "money"
+      ],
+      "mustContain": [
+        "250"
+      ]
+    },
+    {
+      "id": "en-fr-FR-06",
+      "sourceLang": "en-US",
+      "targetLang": "fr-FR",
+      "source": "My friend Alex is coming to visit next week.",
+      "reference": "Mon ami Alex vient nous rendre visite la semaine prochaine.",
+      "tags": [
+        "name"
+      ],
+      "mustContain": [
+        "Alex"
+      ]
+    },
+    {
+      "id": "en-fr-FR-09",
+      "sourceLang": "en-US",
+      "targetLang": "fr-FR",
+      "source": "Where is the nearest pharmacy?",
+      "reference": "Où est la pharmacie la plus proche ?",
+      "tags": [
+        "question"
+      ]
+    },
+    {
+      "id": "en-de-DE-01",
+      "sourceLang": "en-US",
+      "targetLang": "de-DE",
+      "source": "Hi, how are you doing today?",
+      "reference": "Hallo, wie geht es dir heute?",
+      "tags": [
+        "greeting"
+      ]
+    },
+    {
+      "id": "en-de-DE-03",
+      "sourceLang": "en-US",
+      "targetLang": "de-DE",
+      "source": "I'll meet you at the station at 6 o'clock.",
+      "reference": "Ich treffe dich um 6 Uhr am Bahnhof.",
+      "tags": [
+        "time",
+        "number"
+      ],
+      "mustContain": [
+        "6"
+      ]
+    },
+    {
+      "id": "en-de-DE-05",
+      "sourceLang": "en-US",
+      "targetLang": "de-DE",
+      "source": "Please don't tell anyone about this.",
+      "reference": "Bitte erzähl niemandem davon.",
+      "tags": [
+        "negation"
+      ]
+    },
+    {
+      "id": "en-de-DE-06",
+      "sourceLang": "en-US",
+      "targetLang": "de-DE",
+      "source": "My friend Alex is coming to visit next week.",
+      "reference": "Mein Freund Alex kommt nächste Woche zu Besuch.",
+      "tags": [
+        "name"
+      ],
+      "mustContain": [
+        "Alex"
+      ]
+    },
+    {
+      "id": "en-de-DE-10",
+      "sourceLang": "en-US",
+      "targetLang": "de-DE",
+      "source": "Thank you so much for your help yesterday.",
+      "reference": "Vielen Dank für deine Hilfe gestern.",
+      "tags": [
+        "thanks"
+      ]
+    },
+    {
+      "id": "en-pt-BR-01",
+      "sourceLang": "en-US",
+      "targetLang": "pt-BR",
+      "source": "Hi, how are you doing today?",
+      "reference": "Oi, como você está hoje?",
+      "tags": [
+        "greeting"
+      ]
+    },
+    {
+      "id": "en-pt-BR-04",
+      "sourceLang": "en-US",
+      "targetLang": "pt-BR",
+      "source": "It costs 250 dollars, which is too expensive for me.",
+      "reference": "Custa 250 dólares, o que é caro demais para mim.",
+      "tags": [
+        "number",
+        "money"
+      ],
+      "mustContain": [
+        "250"
+      ]
+    },
+    {
+      "id": "en-pt-BR-09",
+      "sourceLang": "en-US",
+      "targetLang": "pt-BR",
+      "source": "Where is the nearest pharmacy?",
+      "reference": "Onde fica a farmácia mais próxima?",
+      "tags": [
+        "question"
+      ]
+    },
+    {
+      "id": "en-pt-BR-10",
+      "sourceLang": "en-US",
+      "targetLang": "pt-BR",
+      "source": "Thank you so much for your help yesterday.",
+      "reference": "Muito obrigado pela sua ajuda ontem.",
+      "tags": [
+        "thanks"
+      ]
+    },
+    {
+      "id": "en-ja-JP-01",
+      "sourceLang": "en-US",
+      "targetLang": "ja-JP",
+      "source": "Hi, how are you doing today?",
+      "reference": "こんにちは、今日はお元気ですか？",
+      "tags": [
+        "greeting"
+      ]
+    },
+    {
+      "id": "en-ja-JP-05",
+      "sourceLang": "en-US",
+      "targetLang": "ja-JP",
+      "source": "Please don't tell anyone about this.",
+      "reference": "このことは誰にも言わないでください。",
+      "tags": [
+        "negation"
+      ]
+    },
+    {
+      "id": "en-ja-JP-09",
+      "sourceLang": "en-US",
+      "targetLang": "ja-JP",
+      "source": "Where is the nearest pharmacy?",
+      "reference": "一番近い薬局はどこですか？",
+      "tags": [
+        "question"
+      ]
+    },
+    {
+      "id": "en-ja-JP-10",
+      "sourceLang": "en-US",
+      "targetLang": "ja-JP",
+      "source": "Thank you so much for your help yesterday.",
+      "reference": "昨日は手伝ってくれて本当にありがとう。",
+      "tags": [
+        "thanks"
+      ]
+    },
+    {
+      "id": "en-zh-CN-01",
+      "sourceLang": "en-US",
+      "targetLang": "zh-CN",
+      "source": "Hi, how are you doing today?",
+      "reference": "你好，你今天怎么样？",
+      "tags": [
+        "greeting"
+      ]
+    },
+    {
+      "id": "en-zh-CN-04",
+      "sourceLang": "en-US",
+      "targetLang": "zh-CN",
+      "source": "It costs 250 dollars, which is too expensive for me.",
+      "reference": "这个要250美元，对我来说太贵了。",
+      "tags": [
+        "number",
+        "money"
+      ],
+      "mustContain": [
+        "250"
+      ]
+    },
+    {
+      "id": "en-zh-CN-06",
+      "sourceLang": "en-US",
+      "targetLang": "zh-CN",
+      "source": "My friend Alex is coming to visit next week.",
+      "reference": "我的朋友Alex下周要来看我。",
+      "tags": [
+        "name"
+      ],
+      "mustContain": [
+        "Alex"
+      ]
+    },
+    {
+      "id": "en-zh-CN-09",
+      "sourceLang": "en-US",
+      "targetLang": "zh-CN",
+      "source": "Where is the nearest pharmacy?",
+      "reference": "最近的药店在哪里？",
+      "tags": [
+        "question"
+      ]
+    },
+    {
+      "id": "en-hi-IN-01",
+      "sourceLang": "en-US",
+      "targetLang": "hi-IN",
+      "source": "Hi, how are you doing today?",
+      "reference": "नमस्ते, आज आप कैसे हैं?",
+      "tags": [
+        "greeting"
+      ]
+    },
+    {
+      "id": "en-hi-IN-03",
+      "sourceLang": "en-US",
+      "targetLang": "hi-IN",
+      "source": "I'll meet you at the station at 6 o'clock.",
+      "reference": "मैं आपसे स्टेशन पर 6 बजे मिलूंगा।",
+      "tags": [
+        "time",
+        "number"
+      ],
+      "mustContain": [
+        "6"
+      ]
+    },
+    {
+      "id": "en-hi-IN-05",
+      "sourceLang": "en-US",
+      "targetLang": "hi-IN",
+      "source": "Please don't tell anyone about this.",
+      "reference": "कृपया इस बारे में किसी को मत बताना।",
+      "tags": [
+        "negation"
+      ]
+    },
+    {
+      "id": "en-hi-IN-09",
+      "sourceLang": "en-US",
+      "targetLang": "hi-IN",
+      "source": "Where is the nearest pharmacy?",
+      "reference": "सबसे नज़दीकी फार्मेसी कहाँ है?",
+      "tags": [
+        "question"
+      ]
+    },
+    {
+      "id": "en-hi-IN-10",
+      "sourceLang": "en-US",
+      "targetLang": "hi-IN",
+      "source": "Thank you so much for your help yesterday.",
+      "reference": "कल आपकी मदद के लिए बहुत-बहुत धन्यवाद।",
+      "tags": [
+        "thanks"
+      ]
+    },
+    {
+      "id": "en-ne-NP-01",
+      "sourceLang": "en-US",
+      "targetLang": "ne-NP",
+      "source": "Hi, how are you doing today?",
+      "reference": "नमस्ते, आज तपाईं कस्तो हुनुहुन्छ?",
+      "tags": [
+        "greeting"
+      ]
+    },
+    {
+      "id": "en-ne-NP-03",
+      "sourceLang": "en-US",
+      "targetLang": "ne-NP",
+      "source": "I'll meet you at the station at 6 o'clock.",
+      "reference": "म तपाईंलाई स्टेशनमा ६ बजे भेट्नेछु।",
+      "tags": [
+        "time",
+        "number"
+      ],
+      "mustContain": [
+        "6"
+      ]
+    },
+    {
+      "id": "en-ne-NP-05",
+      "sourceLang": "en-US",
+      "targetLang": "ne-NP",
+      "source": "Please don't tell anyone about this.",
+      "reference": "कृपया यो कुरा कसैलाई नभन्नुहोला।",
+      "tags": [
+        "negation"
+      ]
+    },
+    {
+      "id": "en-ne-NP-09",
+      "sourceLang": "en-US",
+      "targetLang": "ne-NP",
+      "source": "Where is the nearest pharmacy?",
+      "reference": "सबैभन्दा नजिकको फार्मेसी कहाँ छ?",
+      "tags": [
+        "question"
+      ]
+    },
+    {
+      "id": "en-ne-NP-10",
+      "sourceLang": "en-US",
+      "targetLang": "ne-NP",
+      "source": "Thank you so much for your help yesterday.",
+      "reference": "हिजो तपाईंले गर्नुभएको सहयोगका लागि धेरै धेरै धन्यवाद।",
+      "tags": [
+        "thanks"
+      ]
+    },
+    {
+      "id": "es-MX-en-US-01",
+      "sourceLang": "es-MX",
+      "targetLang": "en-US",
+      "source": "¿Puedes repetir eso, por favor?",
+      "reference": "Can you repeat that, please?",
+      "tags": [
+        "question"
+      ]
+    },
+    {
+      "id": "es-MX-en-US-02",
+      "sourceLang": "es-MX",
+      "targetLang": "en-US",
+      "source": "No entiendo lo que dices.",
+      "reference": "I don't understand what you're saying.",
+      "tags": [
+        "negation"
+      ]
+    },
+    {
+      "id": "fr-FR-en-US-03",
+      "sourceLang": "fr-FR",
+      "targetLang": "en-US",
+      "source": "Je voudrais un café, s'il vous plaît.",
+      "reference": "I would like a coffee, please.",
+      "tags": [
+        "polite"
+      ]
+    },
+    {
+      "id": "de-DE-en-US-04",
+      "sourceLang": "de-DE",
+      "targetLang": "en-US",
+      "source": "Wie viel kostet das?",
+      "reference": "How much does that cost?",
+      "tags": [
+        "question",
+        "money"
+      ]
+    },
+    {
+      "id": "ja-JP-en-US-05",
+      "sourceLang": "ja-JP",
+      "targetLang": "en-US",
+      "source": "駅はどこですか？",
+      "reference": "Where is the station?",
+      "tags": [
+        "question"
+      ]
+    }
+  ]
+}
