@@ -1,0 +1,124 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast),
+    color var(--transition-fast), box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.button:active:not(:disabled) {
+  /* A tiny press displacement is what makes a button feel physical. */
+  transform: translateY(1px);
+}
+
+.button:disabled {
+  opacity: 0.55;
+}
+
+/* --- variants --- */
+
+.primary {
+  background: var(--brand-600);
+  color: #fff;
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--brand-700);
+}
+
+.secondary {
+  background: var(--surface);
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.secondary:hover:not(:disabled) {
+  background: var(--surface-muted);
+  border-color: var(--brand-300);
+}
+
+.ghost {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.ghost:hover:not(:disabled) {
+  background: var(--brand-50);
+  color: var(--brand-700);
+}
+
+.danger {
+  background: var(--danger);
+  color: #fff;
+}
+
+.danger:hover:not(:disabled) {
+  filter: brightness(0.93);
+}
+
+.danger:focus-visible {
+  box-shadow: var(--ring-danger);
+}
+
+/* --- sizes --- */
+
+.sm {
+  padding: 6px var(--space-3);
+  font-size: var(--text-xs);
+}
+
+.md {
+  padding: 9px var(--space-5);
+  font-size: var(--text-sm);
+}
+
+.lg {
+  padding: 13px var(--space-6);
+  font-size: var(--text-base);
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+/* --- inner bits --- */
+
+.icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.sm .icon {
+  width: 15px;
+  height: 15px;
+}
+
+.lg .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.label {
+  /* Keeps the label from being squeezed by a long icon row. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
